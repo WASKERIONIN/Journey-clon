@@ -220,28 +220,28 @@ vec4 npc_sdf(vec3 p) {
         vec4 acc = vec4(u_npc_skin, 1e9);
 
         // торс: таз (штаны) → живот/грудь (жилет) → шея → основа головы
-        acc = npc_seg(acc, p, 0, 1, u_npc_pants, 0.16);
-        acc = npc_seg(acc, p, 1, 2, u_npc_cloth, 0.16);
-        acc = npc_seg(acc, p, 2, 3, u_npc_cloth, 0.10);
-        acc = npc_seg(acc, p, 3, 4, u_npc_skin, 0.10);
+        acc = npc_seg(acc, p, 0, 1, u_npc_pants, 0.055);
+        acc = npc_seg(acc, p, 1, 2, u_npc_cloth, 0.055);
+        acc = npc_seg(acc, p, 2, 3, u_npc_cloth, 0.040);
+        acc = npc_seg(acc, p, 3, 4, u_npc_skin, 0.040);
 
         // руки: плечо-локоть в рукаве жилета, предплечье и кисть — кожа
-        acc = npc_seg(acc, p, 2, 6, u_npc_cloth, 0.11);
-        acc = npc_seg(acc, p, 6, 7, u_npc_cloth, 0.09);
-        acc = npc_seg(acc, p, 7, 8, u_npc_skin, 0.08);
-        acc = npc_seg(acc, p, 2, 9, u_npc_cloth, 0.11);
-        acc = npc_seg(acc, p, 9, 10, u_npc_cloth, 0.09);
-        acc = npc_seg(acc, p, 10, 11, u_npc_skin, 0.08);
+        acc = npc_seg(acc, p, 2, 6, u_npc_cloth, 0.045);
+        acc = npc_seg(acc, p, 6, 7, u_npc_cloth, 0.035);
+        acc = npc_seg(acc, p, 7, 8, u_npc_skin, 0.030);
+        acc = npc_seg(acc, p, 2, 9, u_npc_cloth, 0.045);
+        acc = npc_seg(acc, p, 9, 10, u_npc_cloth, 0.035);
+        acc = npc_seg(acc, p, 10, 11, u_npc_skin, 0.030);
 
         // ноги: штаны до голеностопа, стопы — сапоги
-        acc = npc_seg(acc, p, 0, 12, u_npc_pants, 0.13);
-        acc = npc_seg(acc, p, 12, 13, u_npc_pants, 0.11);
-        acc = npc_seg(acc, p, 13, 14, u_npc_pants, 0.09);
-        acc = npc_seg(acc, p, 14, 15, u_npc_boot, 0.07);
-        acc = npc_seg(acc, p, 0, 16, u_npc_pants, 0.13);
-        acc = npc_seg(acc, p, 16, 17, u_npc_pants, 0.11);
-        acc = npc_seg(acc, p, 17, 18, u_npc_pants, 0.09);
-        acc = npc_seg(acc, p, 18, 19, u_npc_boot, 0.07);
+        acc = npc_seg(acc, p, 0, 12, u_npc_pants, 0.050);
+        acc = npc_seg(acc, p, 12, 13, u_npc_pants, 0.040);
+        acc = npc_seg(acc, p, 13, 14, u_npc_pants, 0.035);
+        acc = npc_seg(acc, p, 14, 15, u_npc_boot, 0.030);
+        acc = npc_seg(acc, p, 0, 16, u_npc_pants, 0.050);
+        acc = npc_seg(acc, p, 16, 17, u_npc_pants, 0.040);
+        acc = npc_seg(acc, p, 17, 18, u_npc_pants, 0.035);
+        acc = npc_seg(acc, p, 18, 19, u_npc_boot, 0.030);
 
         // базис головы: «вверх» — от макушки, взгляд несёт u_npc_face
         vec3 hup = normalize(u_npc_joints[5].xyz - u_npc_head.xyz);
@@ -250,27 +250,27 @@ vec4 npc_sdf(vec3 p) {
         float hr = u_npc_head.w;
 
         // голова + нос-кнопка
-        acc = sdf_smooth_union(acc, length(p - u_npc_head.xyz) - hr, u_npc_skin, 0.10 * hr);
+        acc = sdf_smooth_union(acc, length(p - u_npc_head.xyz) - hr, u_npc_skin, 0.035);
         vec3 nc = u_npc_head.xyz + hfwd * (hr * 0.92) - hup * (hr * 0.10);
-        acc = sdf_smooth_union(acc, length(p - nc) - hr * 0.20, u_npc_skin, 0.06 * hr);
+        acc = sdf_smooth_union(acc, length(p - nc) - hr * 0.20, u_npc_skin, 0.015);
 
-        // кепка рыбака: широкие поля + тулья, размер — от радиуса головы
-        vec3 hc = u_npc_head.xyz + hup * (hr * 0.75);
+        // кепка рыбака: поля + тулья, размер — от радиуса головы
+        vec3 hc = u_npc_head.xyz + hup * (hr * 0.58);
         acc = sdf_smooth_union(acc,
-                sd_ell_f(p, hc, hside, hup, hfwd, vec3(hr * 2.30, hr * 0.22, hr * 2.10)),
-                u_npc_hat * 0.82, 0.05 * hr);
+                sd_ell_f(p, hc, hside, hup, hfwd, vec3(hr * 1.85, hr * 0.20, hr * 1.70)),
+                u_npc_hat * 0.82, 0.02);
         acc = sdf_smooth_union(acc,
-                sd_ell_f(p, hc + hup * (hr * 0.80), hside, hup, hfwd,
-                        vec3(hr * 1.50, hr * 0.95, hr * 1.42)),
-                u_npc_hat, 0.05 * hr);
+                sd_ell_f(p, hc + hup * (hr * 0.72), hside, hup, hfwd,
+                        vec3(hr * 1.35, hr * 0.85, hr * 1.28)),
+                u_npc_hat, 0.02);
 
         // глаза — два объёмных шарика (раскраска — npc_paint)
         vec3 ec = u_npc_head.xyz + hfwd * (hr * 0.82) + hup * (hr * 0.12);
         float er = u_npc_eyes.z;
         acc = sdf_smooth_union(acc, length(p - (ec + hside * u_npc_eyes.y)) - er,
-                vec3(0.96, 0.89, 0.72), 0.018);
+                vec3(0.96, 0.89, 0.72), 0.012);
         acc = sdf_smooth_union(acc, length(p - (ec - hside * u_npc_eyes.y)) - er,
-                vec3(0.96, 0.89, 0.72), 0.018);
+                vec3(0.96, 0.89, 0.72), 0.012);
         return acc;
 }
 

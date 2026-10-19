@@ -25,8 +25,8 @@ const JOINT_RADIUS: Array[float] = [
 ]
 const CHAR_SCALE := 0.92
 const HEAD_R := 0.118
-const EYE_SEP := 0.052
-const EYE_R := 0.034
+const EYE_SEP := 0.058
+const EYE_R := 0.040
 
 const QUESTS := [
 	{"title": "Утренний улов", "text": "Поймай любую рыбу × 3", "count": 3},
@@ -156,14 +156,17 @@ func _update_joints(delta: float) -> void:
 	_joint_world[5] = _joint_world[4] + head_up * 0.20
 	_head_pos = _joint_world[4] + head_up * 0.105
 
-	# взгляд: игрок рядом и впереди — лицо поворачивается к нему
-	var head_fwd := -head_basis.z.normalized()
+	# «Вперёд» лица — из ориентации модели (модель смотрит вдоль +Z узла):
+	# у костей рига свои оси, и -Z головы смотрит не туда, куда лицо.
+	var model_fwd := global_transform.basis.z.normalized()
+	var head_fwd := (model_fwd - head_up * model_fwd.dot(head_up)).normalized()
+	# взгляд: игрок рядом — лицо поворачивается к нему (глаза следят)
 	var want := head_fwd
 	if main != null and main.player != null:
 		var target: Vector3 = main.player.global_position + Vector3(0.0, 1.55, 0.0)
 		var to_p := target - _head_pos
 		var dist := to_p.length()
-		if dist < 8.0 and dist > 0.25 and to_p.dot(head_fwd) > -0.25 * dist:
+		if dist < 8.0 and dist > 0.25:
 			want = to_p / dist
 	# лёгкие «отвлечённые» взгляды, когда игрок не в фокусе
 	var glance := head_basis * Vector3(sin(_t * 0.29) * 0.16, sin(_t * 0.21 + 1.7) * 0.11, 0.0)

@@ -89,6 +89,7 @@ var _nibbles_left := 0
 var _hooked_idx := -1 # рыба на крючке (вываживание)
 var _fscare := PackedFloat32Array() # > 0 — рыба убегает от поплавка
 var _respawn := PackedFloat32Array() # > 0 — таймер возвращения пойманной рыбы
+var _ffree := PackedFloat32Array() # > 0 — пауза зоны (отладочные прыжки)
 var _spawned := false # стая расселена (ждём камеру)
 
 # Отдельный SDF-слот для рыбы на вываживании/в руках. Ни один видимый
@@ -148,6 +149,8 @@ func _init_fish() -> void:
 	_fscare.resize(MAX_FISH)
 	_respawn.resize(MAX_FISH)
 	_respawn.fill(0.0)
+	_ffree.resize(MAX_FISH)
+	_ffree.fill(0.0)
 
 	var center := _camera_xz()
 	for i in range(MAX_FISH):
@@ -263,8 +266,10 @@ func _process(delta: float) -> void:
 			_respawn[i] -= delta
 			if _respawn[i] <= 0.0:
 				_spawn_fish(i, _fish_home[i], true)
+		if _ffree[i] > 0.0:
+			_ffree[i] -= delta
 		_sim_fish(i, delta)
-		if _fsize[i] > 0.001:
+		if _fsize[i] > 0.001 and _ffree[i] <= 0.0:
 			# Рыба на приманке/крючке обязана держаться у поплавка — только дно.
 			_constrain_fish(i, _fsize[i], delta,
 				i != _lure_idx and i != _hooked_idx)
@@ -338,7 +343,7 @@ func _sim_fish(i: int, delta: float) -> void:
 			var home_delta := wrapf(home_heading - _fheading[i], -PI, PI)
 			_fturn[i] += home_delta * 1.4 * delta
 		# Курс от мели: смотрим на глубину вперёд-вбок и выбираем глубже.
-		if coast != null:
+		if coast != null and _ffree[i] <= 0.0:
 			var need := _zone_depth_for(s)
 			var d_here := coast.water_depth(_fpos[i].x, _fpos[i].z)
 			if d_here < need + 2.2:
@@ -365,7 +370,8 @@ func _sim_fish(i: int, delta: float) -> void:
 	var cy := fposmod(t + _foffset[i], _fperiod[i])
 	var x := (cy - 0.55 * _fperiod[i]) / (0.09 * _fperiod[i])
 	var bump := exp(-x * x)
-	if coast != null and coast.water_depth(_fpos[i].x, _fpos[i].z) < _zone_depth_for(s):
+	if coast != null and _ffree[i] <= 0.0 \
+			and coast.water_depth(_fpos[i].x, _fpos[i].z) < maxf(2.0, _zone_depth_for(s) * 0.8):
 		bump = 0.0 # на мелководье не выпрыгиваем — не садимся на песок
 	var target := water_level - _fcruise[i] + (_fcruise[i] + _fjump[i]) * bump
 	var prev_y := _fy[i]
@@ -636,6 +642,7 @@ func debug_breach_near(pos: Vector3) -> void:
 	if fish_count <= 0:
 		return
 	var i := 0
+	_ffree[i] = 6.0 # зона не мешает контрольному прыжку
 	_fsize[i] = 0.9
 	_fpos[i] = Vector3(pos.x, water_level - 0.55, pos.z)
 	_fy[i] = water_level - 0.4
