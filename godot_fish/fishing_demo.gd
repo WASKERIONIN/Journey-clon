@@ -24,9 +24,9 @@ extends Node3D
 
 const CAM_POS := Vector3(0.0, 2.6, 16.0)
 
-var water: WaterSurface
-var fish: SandFish
-var rod: RodCast
+var water: GodotFishWaterSurface
+var fish: GodotFishSandFish
+var rod: GodotFishRodCast
 var cam: Camera3D
 
 var _keys := {}
@@ -53,18 +53,18 @@ func _ready() -> void:
 	var game := DemoGame.new()
 	_build_sky(game.sun_dir)
 
-	water = WaterSurface.new()
+	water = GodotFishWaterSurface.new()
 	add_child(water)
 	water.setup(game, Vector2.ZERO, 300.0, 0.0)
 	#                 центр XZ     размер  уровень Y (0.0 = море в мировой нуле)
 
-	fish = SandFish.new()
+	fish = GodotFishSandFish.new()
 	fish.fish_count = 4 # менять ДО add_child
 	add_child(fish)
 	fish.setup(game, water.level_y, water.field)
 
 	_build_camera()
-	rod = RodCast.new()
+	rod = GodotFishRodCast.new()
 	cam.add_child(rod) # удочка живёт НА КАМЕРЕ, как FpsArms
 	rod.setup(game, water, fish)
 	_connect_signals()

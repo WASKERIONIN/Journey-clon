@@ -1,4 +1,4 @@
-class_name RodCast
+class_name GodotFishRodCast
 extends Node3D
 ## Удочка от первого лица: заряд → заброс (Безье, нормировка длиной дуги,
 ## всё на delta) → поплавок на воде → поклёвка → подсечка → вываживание.

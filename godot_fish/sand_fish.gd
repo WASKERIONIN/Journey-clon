@@ -1,4 +1,4 @@
-class_name SandFish
+class_name GodotFishSandFish
 extends Node3D
 ## Песчаные существа — SDF-реймарчинг поверх «песчаного моря».
 ##
@@ -47,7 +47,7 @@ const PALETTE: Array[Color] = [
 @export_range(0.4, 2.4) var jump_mul := 1.0 ## множитель высоты прыжка
 
 var water_level := 0.0
-var water_field: WaterField = null # кольца от всплесков (опционально)
+var water_field: GodotFishWaterField = null # кольца от всплесков (опционально)
 var game = null # автозагрузка Game — общее солнце и туман с водой/песком
 var material: ShaderMaterial
 var t := 0.0 # время поля — единое с шейдерным u_time
@@ -164,7 +164,7 @@ func _init_drops() -> void:
 	_dr0.fill(0.0) # все слоты пусты
 
 
-func setup(game_ref, p_level: float, wf: WaterField = null) -> void:
+func setup(game_ref, p_level: float, wf: GodotFishWaterField = null) -> void:
 	game = game_ref
 	water_level = p_level
 	water_field = wf

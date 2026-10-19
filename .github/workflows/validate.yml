@@ -1,0 +1,144 @@
+name: validate
+
+# Headless-проверка проекта: импорт + автотест геймплея (JOURNEY_SMOKE).
+# Раннер скачивает портативный Godot 4.7.2 stable (Linux) и прогоняет проект.
+# При падении полные логи коммитятся в .ci-logs/ — их можно забрать git-ом.
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  headless:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Godot binary
+        id: godot_cache
+        uses: actions/cache@v4
+        with:
+          path: godot_bin
+          key: godot-4.7.2-stable-linux-x86_64
+
+      - name: Download Godot 4.7.2
+        if: steps.godot_cache.outputs.cache-hit != 'true'
+        run: |
+          curl -sL -o godot.zip \
+            https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip
+          unzip -q godot.zip
+          mkdir -p godot_bin
+          mv Godot_v4.7.2-stable_linux.x86_64 godot_bin/godot
+          chmod +x godot_bin/godot
+          godot_bin/godot --version
+
+      - name: Vulkan (lavapipe) для рендер-проверки
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq mesa-vulkan-drivers vulkan-tools > /dev/null
+          vulkaninfo --summary 2>/dev/null | grep -A2 "GPU0" || echo "lavapipe: инфо недоступна"
+
+      - name: Import project
+        run: |
+          godot_bin/godot --headless --path . --import > import.log 2>&1
+          code=$?
+          cat import.log
+          if grep -qE "SCRIPT ERROR|Parse Error|Parse error|SHADER ERROR|Can't load|Failed to compile|Shader" import.log; then
+            echo "::error::Ошибки при импорте (см. .ci-logs в коммите CI)"
+            grep -E "SCRIPT ERROR|Parse Error|Parse error|SHADER ERROR|Can't load|Failed to compile|Shader" import.log | head -10 | while read -r line; do
+              echo "::error::$line"
+            done
+            exit 1
+          fi
+          if [ $code -ne 0 ]; then
+            echo "::error::Импорт завершился с кодом $code"
+            tail -10 import.log | while read -r line; do
+              echo "::error::$line"
+            done
+            exit 1
+          fi
+
+      - name: Smoke run (автотест геймплея)
+        run: |
+          JOURNEY_SMOKE=1 godot_bin/godot --headless --path . --quit-after 12000 > smoke.log 2>&1
+          code=$?
+          cat smoke.log
+          if ! grep -q "SMOKE] итог" smoke.log; then
+            echo "::error::Smoke-тест не дошёл до конца (нет итоговой строки)"
+            exit 1
+          fi
+          if grep -qE "SCRIPT ERROR|Invalid (get|call|set)|Unable to" smoke.log; then
+            echo "::error::Ошибки скриптов в рантайме (см. .ci-logs в коммите CI)"
+            grep -E "SCRIPT ERROR|Invalid (get|call|set)|Unable to" smoke.log | head -10 | while read -r line; do
+              echo "::error::$line"
+            done
+            exit 1
+          fi
+          if [ $code -ne 0 ]; then
+            echo "::error::Smoke-тест завершился с кодом $code"
+            grep "SMOKE" smoke.log | tail -30 | while read -r line; do
+              echo "::error::$line"
+            done
+            exit 1
+          fi
+
+      # Headless (dummy-рендерер) НЕ компилирует шейдеры. Прогоняем несколько
+      # кадров под xvfb + Vulkan lavapipe (софтверный) с настоящим Forward+ —
+      # поймаем ошибки шейдеров и снимем кадры (проект на forward_plus).
+      - name: Render check (шейдеры + скриншоты, xvfb + Vulkan lavapipe)
+        run: |
+          if ! command -v xvfb-run >/dev/null 2>&1; then
+            echo "::warning::xvfb-run недоступен — рендер-проверка пропущена"
+            exit 0
+          fi
+          mkdir -p .ci-logs/shots
+          rm -f .ci-logs/shots/*.png # чистим кадры прошлого прогона
+          SHOT_DIR="$PWD/.ci-logs/shots" JOURNEY_SHOT=1 \
+            xvfb-run -a -s "-screen 0 1280x720x24" \
+            godot_bin/godot --path . --rendering-method forward_plus \
+            --resolution 1280x720 --fixed-fps 30 --quit-after 700 \
+            > render.log 2>&1 || true
+          cat render.log
+          ls -la .ci-logs/shots || true
+          if grep -iE "SHADER ERROR|failed to compile|error compiling" render.log; then
+            echo "::error::Ошибки компиляции шейдеров"
+            exit 1
+          fi
+          if grep -qiE "do not support any of the supported Vulkan|Could not create.*Vulkan|Your video card" render.log; then
+            echo "::error::Vulkan-контекст не поднялся (lavapipe?)"
+            exit 1
+          fi
+          if grep -q "Vulkan" render.log; then
+            echo "Vulkan-рендер поднялся, шейдеры скомпилированы"
+          else
+            echo "::warning::Vulkan-контекст не найден в логе — проверка могла не состояться"
+          fi
+          if [ ! -f .ci-logs/shots/shot_a_coast.png ]; then
+            echo "::error::Скриншоты не сохранились — что-то не так с рендером"
+            exit 1
+          fi
+
+      - name: Publish artifacts (скриншоты всегда, логи при падении)
+        if: always()
+        run: |
+          git config user.name "ci-bot"
+          git config user.email "ci-bot@users.noreply.github.com"
+          mkdir -p .ci-logs
+          # чистим логи из чекаута: шаг мог быть пропущен, и старый лог
+          # с прошлого прогона выглядел бы как свежий
+          rm -f .ci-logs/import.log .ci-logs/smoke.log .ci-logs/render.log
+          cp -f import.log .ci-logs/ 2>/dev/null || echo "import: пропущен" > .ci-logs/import.log
+          cp -f smoke.log .ci-logs/ 2>/dev/null || echo "smoke: пропущен" > .ci-logs/smoke.log
+          cp -f render.log .ci-logs/ 2>/dev/null || echo "render: пропущен" > .ci-logs/render.log
+                    git add .ci-logs
+          git commit -m "ci: артефакты прогона ${GITHUB_SHA::7}" || true
+          git push origin HEAD:${GITHUB_REF#refs/heads/} || true
