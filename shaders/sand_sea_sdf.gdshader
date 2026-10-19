@@ -95,7 +95,7 @@ uniform vec4 u_npc_head = vec4(0.0, -100.0, 0.0, 0.0); // центр голов�
 uniform vec4 u_npc_face = vec4(0.0, 0.0, -1.0, 0.0); // взгляд xyz + открытость рта
 uniform vec4 u_npc_eyes = vec4(0.0, 0.052, 0.034, 0.0); // морг, разлёт, радиус, —
 uniform vec3 u_npc_skin : source_color = vec3(0.82, 0.47, 0.28);
-uniform vec3 u_npc_cloth : source_color = vec3(0.13, 0.33, 0.35);
+uniform vec3 u_npc_cloth : source_color = vec3(0.10, 0.85, 0.95);
 uniform vec3 u_npc_pants : source_color = vec3(0.36, 0.26, 0.20);
 uniform vec3 u_npc_hat : source_color = vec3(0.42, 0.29, 0.18);
 uniform vec3 u_npc_boot : source_color = vec3(0.27, 0.19, 0.14);
@@ -299,9 +299,9 @@ vec3 npc_paint(vec3 p, vec3 albedo) {
                 }
                 vec3 q = d / max(r, 1e-5);
                 float ang = acos(clamp(dot(q, hfwd), -1.0, 1.0));
-                float iris = 1.0 - smoothstep(0.62, 0.78, ang);
-                float pupil = 1.0 - smoothstep(0.24, 0.33, ang);
-                float iris_grad = 1.0 - smoothstep(0.10, 0.78, ang);
+                float iris = 1.0 - smoothstep(0.68, 0.84, ang);
+                float pupil = 1.0 - smoothstep(0.30, 0.40, ang);
+                float iris_grad = 1.0 - smoothstep(0.10, 0.84, ang);
                 vec3 col = vec3(0.98, 0.92, 0.78);
                 col = mix(col, mix(vec3(0.10, 0.48, 0.54), vec3(0.88, 0.66, 0.22), iris_grad), iris);
                 col = mix(col, vec3(0.025, 0.032, 0.038), pupil);

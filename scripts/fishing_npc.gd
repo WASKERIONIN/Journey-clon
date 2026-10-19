@@ -220,7 +220,7 @@ func _push_sdf() -> void:
 	_sdf_mat.set_shader_parameter("u_npc_skin",
 		Vector3(0.95, 0.58, 0.34).lerp(Vector3(0.55, 0.42, 0.50), night * 0.5))
 	_sdf_mat.set_shader_parameter("u_npc_cloth",
-		Vector3(0.30, 0.78, 0.82).lerp(Vector3(0.18, 0.30, 0.52), night * 0.55))
+		Vector3(0.10, 0.85, 0.95).lerp(Vector3(0.14, 0.30, 0.55), night * 0.55))
 	_sdf_mat.set_shader_parameter("u_npc_pants",
 		Vector3(0.62, 0.42, 0.28).lerp(Vector3(0.32, 0.28, 0.38), night * 0.5))
 	_sdf_mat.set_shader_parameter("u_npc_hat",
