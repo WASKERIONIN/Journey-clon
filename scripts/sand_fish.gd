@@ -344,7 +344,7 @@ func _sim_fish(i: int, delta: float) -> void:
 			if d_here < need + 2.2:
 				var best_h := _fheading[i]
 				var best_d := d_here
-				for a in [-0.85, -0.35, 0.35, 0.85]:
+				for a: float in [-0.85, -0.35, 0.35, 0.85]:
 					var h := _fheading[i] + a
 					var dp := coast.water_depth(_fpos[i].x + cos(h) * 5.0,
 						_fpos[i].z + sin(h) * 5.0)

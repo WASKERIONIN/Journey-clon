@@ -18,7 +18,7 @@ const JOINT_BONES: Array = [
 	[16, "DEF-thigh.R"], [17, "DEF-shin.R"], [18, "DEF-foot.R"], [19, "DEF-toe.R"],
 ]
 # радиусы капсул по слотам 0..19, м
-const JOINT_RADIUS := [
+const JOINT_RADIUS: Array[float] = [
 	0.150, 0.170, 0.165, 0.085, 0.135, 0.050,
 	0.095, 0.062, 0.052, 0.095, 0.062, 0.052,
 	0.105, 0.078, 0.052, 0.040, 0.105, 0.078, 0.052, 0.040,
@@ -201,10 +201,13 @@ func _push_sdf() -> void:
 	var arr := PackedVector4Array()
 	arr.resize(20)
 	for slot in range(20):
-		arr[slot] = Vector4(_joint_world[slot], JOINT_RADIUS[slot] * CHAR_SCALE)
+		var j := _joint_world[slot]
+		arr[slot] = Vector4(j.x, j.y, j.z, JOINT_RADIUS[slot] * CHAR_SCALE)
+	var hp := _head_pos
 	_sdf_mat.set_shader_parameter("u_npc_joints", arr)
-	_sdf_mat.set_shader_parameter("u_npc_head", Vector4(_head_pos, HEAD_R))
-	_sdf_mat.set_shader_parameter("u_npc_face", Vector4(_face_fwd, _talk_open))
+	_sdf_mat.set_shader_parameter("u_npc_head", Vector4(hp.x, hp.y, hp.z, HEAD_R))
+	_sdf_mat.set_shader_parameter("u_npc_face",
+		Vector4(_face_fwd.x, _face_fwd.y, _face_fwd.z, _talk_open))
 	_sdf_mat.set_shader_parameter("u_npc_eyes", Vector4(_blink, EYE_SEP, EYE_R, 0.0))
 	# ночь чуть синит ткани — та же палитра, что у песка и моря
 	var night := 0.0

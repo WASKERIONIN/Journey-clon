@@ -595,7 +595,7 @@ func _sim_fish(i: int, delta: float) -> void:
 		var x := (cy - 0.55 * _jump_period[i]) / (0.09 * _jump_period[i])
 		bump = exp(-x * x)
 		if coast != null and not _pposed[i] \
-				and coast.water_depth(_pos[i].x, _pos[i].z) < _zone_depth_for(sp.s):
+				and coast.water_depth(_pos[i].x, _pos[i].z) < _zone_depth_for(float(sp.s)):
 			bump = 0.0 # на мелководье не выпрыгиваем — не садимся на песок
 
 	# --- стрела: рывок-бросок, на выходе — прыжок ---
@@ -697,20 +697,20 @@ func _sim_fish(i: int, delta: float) -> void:
 			_turn[i] += dh * 1.8 * delta
 		# Курс от мели: выбираем глубину вперёд-вбок, чтобы не выйти на песок.
 		if coast != null:
-			var need := _zone_depth_for(sp.s)
-			var d_here := coast.water_depth(_pos[i].x, _pos[i].z)
+			var need: float = _zone_depth_for(float(sp.s))
+			var d_here: float = coast.water_depth(_pos[i].x, _pos[i].z)
 			if d_here < need + 2.2:
-				var best_h := _heading[i]
-				var best_d := d_here
-				for a in [-0.85, -0.35, 0.35, 0.85]:
-					var h := _heading[i] + a
-					var dp := coast.water_depth(_pos[i].x + cos(h) * 5.0,
+				var best_h: float = _heading[i]
+				var best_d: float = d_here
+				for a: float in [-0.85, -0.35, 0.35, 0.85]:
+					var h: float = _heading[i] + a
+					var dp: float = coast.water_depth(_pos[i].x + cos(h) * 5.0,
 						_pos[i].z + sin(h) * 5.0)
 					if dp > best_d + 0.03:
 						best_d = dp
 						best_h = h
 				if best_d > d_here + 0.03:
-					var dh2 := wrapf(best_h - _heading[i], -PI, PI)
+					var dh2: float = wrapf(best_h - _heading[i], -PI, PI)
 					_turn[i] += clampf(dh2 * 3.4, -0.9, 0.9) * delta * 5.0
 	_turn[i] = clampf(_turn[i], -0.7, 0.7)
 	var spd_k := 1.0 - 0.85 * _hover_k[i] # «водоросль» — почти стоп
@@ -753,10 +753,10 @@ func _sim_fish(i: int, delta: float) -> void:
 	_pos[i].y += (y_tgt - _pos[i].y) * (1.0 - exp(-7.0 * delta))
 	if coast != null and not _pposed[i]:
 		# дно: тело с запасом выше песка (усачу разрешено копать)
-		var clear := 0.38 * s
+		var clear: float = 0.38 * s
 		if _probe_k[i] > 0.3:
 			clear = -0.55 * s
-		var floor_y := coast.ground_height(_pos[i].x, _pos[i].z) + clear + 0.12
+		var floor_y: float = coast.ground_height(_pos[i].x, _pos[i].z) + clear + 0.12
 		floor_y = minf(floor_y, water_level - 0.30 * s)
 		if _pos[i].y < floor_y:
 			_pos[i].y = floor_y
