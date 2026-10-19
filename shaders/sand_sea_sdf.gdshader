@@ -255,17 +255,17 @@ vec4 npc_sdf(vec3 p) {
         acc = sdf_smooth_union(acc, length(p - nc) - hr * 0.20, u_npc_skin, 0.015);
 
         // кепка рыбака: поля + тулья, размер — от радиуса головы
-        vec3 hc = u_npc_head.xyz + hup * (hr * 0.58);
+        vec3 hc = u_npc_head.xyz + hup * (hr * 0.66);
         acc = sdf_smooth_union(acc,
                 sd_ell_f(p, hc, hside, hup, hfwd, vec3(hr * 1.85, hr * 0.20, hr * 1.70)),
                 u_npc_hat * 0.82, 0.02);
         acc = sdf_smooth_union(acc,
-                sd_ell_f(p, hc + hup * (hr * 0.72), hside, hup, hfwd,
+                sd_ell_f(p, hc + hup * (hr * 0.78), hside, hup, hfwd,
                         vec3(hr * 1.35, hr * 0.85, hr * 1.28)),
                 u_npc_hat, 0.02);
 
         // глаза — два объёмных шарика (раскраска — npc_paint)
-        vec3 ec = u_npc_head.xyz + hfwd * (hr * 0.82) + hup * (hr * 0.12);
+        vec3 ec = u_npc_head.xyz + hfwd * (hr * 0.82) + hup * (hr * 0.10);
         float er = u_npc_eyes.z;
         acc = sdf_smooth_union(acc, length(p - (ec + hside * u_npc_eyes.y)) - er,
                 vec3(0.96, 0.89, 0.72), 0.012);
@@ -287,7 +287,7 @@ vec3 npc_paint(vec3 p, vec3 albedo) {
         vec3 hside = normalize(cross(hfwd, hup));
         float er = u_npc_eyes.z;
         float blink = clamp(u_npc_eyes.x, 0.0, 1.0);
-        vec3 ec = u_npc_head.xyz + hfwd * (hr * 0.82) + hup * (hr * 0.12);
+        vec3 ec = u_npc_head.xyz + hfwd * (hr * 0.82) + hup * (hr * 0.10);
 
         for (int s = 0; s < 2; s++) {
                 vec3 sg = (s == 0) ? hside : -hside;
@@ -302,8 +302,8 @@ vec3 npc_paint(vec3 p, vec3 albedo) {
                 float iris = 1.0 - smoothstep(0.62, 0.78, ang);
                 float pupil = 1.0 - smoothstep(0.24, 0.33, ang);
                 float iris_grad = 1.0 - smoothstep(0.10, 0.78, ang);
-                vec3 col = vec3(0.96, 0.89, 0.72);
-                col = mix(col, mix(vec3(0.12, 0.53, 0.55), vec3(0.75, 0.57, 0.26), iris_grad), iris);
+                vec3 col = vec3(0.98, 0.92, 0.78);
+                col = mix(col, mix(vec3(0.10, 0.48, 0.54), vec3(0.88, 0.66, 0.22), iris_grad), iris);
                 col = mix(col, vec3(0.025, 0.032, 0.038), pupil);
                 // два блика — крупный сверху-сбоку, мелкий снизу
                 vec3 hl1 = normalize(hfwd * 0.72 + hup * 0.60 + sg * 0.34);
@@ -333,11 +333,11 @@ vec3 npc_paint(vec3 p, vec3 albedo) {
         }
 
         // рот: тёмный овал под носом, открывается при разговоре
-        vec3 mc = u_npc_head.xyz + hfwd * (hr * 0.92) - hup * (hr * 0.40);
+        vec3 mc = u_npc_head.xyz + hfwd * (hr * 0.92) - hup * (hr * 0.42);
         vec3 mq = p - mc;
         vec3 ml = vec3(dot(mq, hside), dot(mq, hup), dot(mq, hfwd));
         float open = clamp(u_npc_face.w, 0.0, 1.0);
-        vec3 mr = vec3(hr * (0.30 + 0.18 * open), hr * (0.10 + 0.30 * open), hr * 0.40);
+        vec3 mr = vec3(hr * (0.36 + 0.22 * open), hr * (0.12 + 0.34 * open), hr * 0.42);
         float mo = 1.0 - smoothstep(0.72, 1.08, length(ml / mr));
         albedo = mix(albedo, vec3(0.16, 0.09, 0.08), mo * 0.92);
         return albedo;

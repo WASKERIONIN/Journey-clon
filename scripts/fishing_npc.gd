@@ -25,8 +25,8 @@ const JOINT_RADIUS: Array[float] = [
 ]
 const CHAR_SCALE := 0.92
 const HEAD_R := 0.118
-const EYE_SEP := 0.058
-const EYE_R := 0.040
+const EYE_SEP := 0.062
+const EYE_R := 0.048
 
 const QUESTS := [
 	{"title": "Утренний улов", "text": "Поймай любую рыбу × 3", "count": 3},
@@ -212,20 +212,21 @@ func _push_sdf() -> void:
 	_sdf_mat.set_shader_parameter("u_npc_face",
 		Vector4(_face_fwd.x, _face_fwd.y, _face_fwd.z, _talk_open))
 	_sdf_mat.set_shader_parameter("u_npc_eyes", Vector4(_blink, EYE_SEP, EYE_R, 0.0))
-	# ночь чуть синит ткани — та же палитра, что у песка и моря
+	# ночь чуть синит ткани — та же палитра, что у песка и моря.
+	# Базы яркие: в освещении SDF-существ тёмные цвета тонут в отсвете дюн.
 	var night := 0.0
 	if main != null and main.game != null:
 		night = main.game.night01
 	_sdf_mat.set_shader_parameter("u_npc_skin",
-		Color(0.82, 0.47, 0.28).lerp(Color(0.50, 0.38, 0.46), night * 0.5))
+		Vector3(0.95, 0.58, 0.34).lerp(Vector3(0.55, 0.42, 0.50), night * 0.5))
 	_sdf_mat.set_shader_parameter("u_npc_cloth",
-		Color(0.13, 0.33, 0.35).lerp(Color(0.10, 0.17, 0.32), night * 0.55))
+		Vector3(0.30, 0.78, 0.82).lerp(Vector3(0.18, 0.30, 0.52), night * 0.55))
 	_sdf_mat.set_shader_parameter("u_npc_pants",
-		Color(0.36, 0.26, 0.20).lerp(Color(0.23, 0.21, 0.30), night * 0.5))
+		Vector3(0.62, 0.42, 0.28).lerp(Vector3(0.32, 0.28, 0.38), night * 0.5))
 	_sdf_mat.set_shader_parameter("u_npc_hat",
-		Color(0.42, 0.29, 0.18).lerp(Color(0.27, 0.23, 0.30), night * 0.5))
+		Vector3(0.66, 0.45, 0.26).lerp(Vector3(0.36, 0.30, 0.38), night * 0.5))
 	_sdf_mat.set_shader_parameter("u_npc_boot",
-		Color(0.27, 0.19, 0.14).lerp(Color(0.18, 0.16, 0.23), night * 0.5))
+		Vector3(0.42, 0.28, 0.20).lerp(Vector3(0.24, 0.20, 0.28), night * 0.5))
 
 
 func _find_skeleton(node: Node) -> Skeleton3D:
