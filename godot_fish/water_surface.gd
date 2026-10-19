@@ -1,4 +1,4 @@
-class_name WaterSurface
+class_name GodotFishWaterSurface
 extends MeshInstance3D
 ## Песчаное море: меш + материал + поле колец, в одном узле.
 ##
@@ -20,7 +20,7 @@ extends MeshInstance3D
 
 const SHADER_PATH := "res://shaders/water.gdshader"
 
-var field: WaterField
+var field: GodotFishWaterField
 var level_y := 0.0
 var size := 240.0
 
@@ -44,7 +44,7 @@ func setup(game_ref, center: Vector2, p_size: float, p_level_y: float,
 	material_override = mat
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
-	field = WaterField.new()
+	field = GodotFishWaterField.new()
 	field.name = "WaterField"
 	add_child(field)
 	field.material = mat

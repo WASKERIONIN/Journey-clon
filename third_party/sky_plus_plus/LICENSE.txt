@@ -1,0 +1,10 @@
+Sky++ shader by Andrey Soldatov (Ansol)
+Source: https://github.com/AndreySoldatov/Godot-Sky-Plus-Plus
+Shader page: https://godotshaders.com/shader/sky-sorta/
+
+The shader code is published under the CC0 1.0 Universal dedication:
+https://creativecommons.org/publicdomain/zero/1.0/
+
+Integrated and performance-tuned for To The Light. The original large HDR
+star cubemap and moon texture are intentionally not redistributed; this build
+uses procedural cloud textures and keeps the moon/star passes inactive.

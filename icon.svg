@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Дюна, свет на горизонте -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b2d5c"/>
+      <stop offset="0.62" stop-color="#a35a6e"/>
+      <stop offset="1" stop-color="#f2a45c"/>
+    </linearGradient>
+    <linearGradient id="dune" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6b268"/>
+      <stop offset="1" stop-color="#8a4d63"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" fill="url(#sky)"/>
+  <circle cx="86" cy="46" r="13" fill="#ffe9b8"/>
+  <circle cx="86" cy="46" r="19" fill="#ffe9b8" opacity="0.28"/>
+  <path d="M0 92 Q 34 60 66 88 T 128 78 L 128 128 L 0 128 Z" fill="url(#dune)"/>
+  <path d="M0 108 Q 44 84 92 106 T 128 100 L 128 128 L 0 128 Z" fill="#6d3a55"/>
+</svg>
