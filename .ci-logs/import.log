@@ -76,25 +76,3 @@ Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
 [  16% ] [90m[1mloading_editor_layout[22m | Loading docks...[39m[0m
 [92m[ DONE ][39m [1mloading_editor_layout[22m
 [0m
-SCRIPT ERROR: Parse Error: Cannot infer the type of "h" variable because the value doesn't have a set type.
-          at: GDScript::reload (res://scripts/sand_fish.gd:348)
-SCRIPT ERROR: Parse Error: Cannot infer the type of "d_here" variable because the value doesn't have a set type.
-          at: GDScript::reload (res://godot_fish/fish_kit.gd:701)
-SCRIPT ERROR: Parse Error: Cannot infer the type of "h" variable because the value doesn't have a set type.
-          at: GDScript::reload (res://godot_fish/fish_kit.gd:706)
-SCRIPT ERROR: Parse Error: Cannot infer the type of "dp" variable because the value doesn't have a set type.
-          at: GDScript::reload (res://godot_fish/fish_kit.gd:707)
-SCRIPT ERROR: Parse Error: Cannot infer the type of "floor_y" variable because the value doesn't have a set type.
-          at: GDScript::reload (res://godot_fish/fish_kit.gd:759)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://godot_fish/fish_kit.gd:704)
-SCRIPT ERROR: Parse Error: No constructor of "Vector4" matches the signature "Vector4(Vector3, Variant)".
-          at: GDScript::reload (res://scripts/fishing_npc.gd:204)
-SCRIPT ERROR: Parse Error: No constructor of "Vector4" matches the signature "Vector4(Vector3, float)".
-          at: GDScript::reload (res://scripts/fishing_npc.gd:206)
-SCRIPT ERROR: Parse Error: No constructor of "Vector4" matches the signature "Vector4(Vector3, float)".
-          at: GDScript::reload (res://scripts/fishing_npc.gd:207)
-SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
-          at: GDScript::reload (res://scripts/main.gd:0)
-ERROR: Failed to load script "res://scripts/main.gd" with error "Parse error".
-   at: load (modules/gdscript/gdscript_resource_format.cpp:46)

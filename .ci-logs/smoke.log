@@ -1,1 +1,72 @@
-smoke: пропущен
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+WORLD: Vulkan недоступен — Compatibility-фолбэк, волюметрический туман заменён плотной дымкой
+[NPC] CC0 animation playing: Idle_Talking; root=..
+[SMOKE] урез при z=-14: x=7.4, спавн=(33.4, -14.0)
+[SMOKE] ходьба: кадр 30 spd=3.40 (33.4, -12.6)
+[SMOKE] ходьба: кадр 40 spd=3.40 (33.4, -12.0)
+[SMOKE] ходьба: кадр 50 spd=3.40 (33.4, -11.4)
+[SMOKE] ходьба: кадр 60 spd=3.40 (33.4, -10.9)
+[SMOKE] ходьба: кадр 70 spd=3.40 (33.4, -10.3)
+[SMOKE] ходьба: кадр 80 spd=3.40 (33.4, -9.7)
+[SMOKE] ходьба: кадр 90 spd=3.40 (33.4, -9.2)
+[SMOKE] ходьба: кадр 100 spd=3.40 (33.4, -8.6)
+[SMOKE] ходьба: кадр 110 spd=3.40 (33.4, -8.0)
+[SMOKE] ходьба: кадр 120 spd=3.40 (33.4, -7.5)
+[SMOKE] ходьба: кадр 130 spd=3.40 (33.4, -6.9)
+[SMOKE] ходьба: кадр 140 spd=3.40 (33.4, -6.3)
+[SMOKE] ходьба: кадр 150 spd=3.40 (33.4, -5.8)
+[SMOKE] ходьба: кадр 160 spd=3.40 (33.4, -5.2)
+[SMOKE] ходьба: кадр 170 spd=3.40 (33.4, -4.6)
+[SMOKE] брод: кадр 40 x=1.6 глубина=0.37 wet01=0.38
+[SMOKE] брод: кадр 80 x=-0.2 глубина=0.54 wet01=0.63
+[SMOKE] брод: кадр 120 x=-1.8 глубина=0.71 wet01=0.89
+[SMOKE] брод: кадр 160 x=-2.4 глубина=0.78 wet01=1.00
+[SMOKE] брод: кадр 200 x=-2.4 глубина=0.78 wet01=1.00
+[SMOKE] брод: кадр 240 x=-2.4 глубина=0.78 wet01=1.00
+[SMOKE] заброс: поплавок в (-0.7, 0.00, -14.0), сила 14.09
+[SMOKE] поклёвка! подсекаем (кадр 1)
+[SMOKE] вываживание: кадр 180, рывок=false, натяг=41, прогресс=75
+[FISH] Серебристая макрель (26 см, 0.35 кг) — новый вид
+[SMOKE] PASS мир: берег собран
+[SMOKE] PASS мир: море собрано
+[SMOKE] PASS мир: существа собраны
+[SMOKE] PASS мир: пирс собран
+[SMOKE] PASS удочка висит на камере
+[SMOKE] PASS звук поднят
+[SMOKE] PASS удочка изначально убрана (в руке)
+[SMOKE] PASS старт на сухом пляже (1.66 м над морем)
+[SMOKE] PASS в 60 м от старта уже глубина (-3.22 м)
+[SMOKE] PASS вглубь суши — дюны (6.9 м)
+[SMOKE] PASS игрок стоит на песке
+[SMOKE] PASS настил пирса над водой (1.22 м)
+[SMOKE] PASS под пирсом вода (дно -2.27 м)
+[SMOKE] PASS игрок стоит на настиле (1.22 м)
+[SMOKE] PASS ходьба: скорость в норме 15 из 15 (пик 3.4 м/с)
+[SMOKE] PASS ходьба: без ввода остановился (0.00 м/с)
+[SMOKE] PASS ходьба: на земле
+[SMOKE] PASS песок: отпечатки остаются (10 штампов)
+[SMOKE] PASS брод: вода под ногами (глубина до 0.78 м)
+[SMOKE] PASS брод: глубже лимита не пускает (макс 0.78 при лимите 0.78)
+[SMOKE] PASS брод: игрок чувствует воду (wet01 до 1.00)
+[SMOKE] PASS удочка: достали из-за спины
+[SMOKE] PASS заброс: поплавок упал на воду
+[SMOKE] PASS поплавок на уровне моря (y=0.00)
+[SMOKE] PASS заброс: дальность 14.1 м
+[SMOKE] PASS рыба: подсечка удалась
+[SMOKE] PASS рыба: поймана (размер 25.90)
+[SMOKE] PASS рыба: удочка снова наготове
+[SMOKE] PASS рыба: в море остались существа
+[SMOKE] PASS снасть: возвращается в руки (line_retrieved)
+[SMOKE] PASS удочка: убирается (Q)
+[SMOKE] PASS удочка: снова достаётся кликом
+[SMOKE] PASS заброс в песок: поплавок честно падает на песок
+[SMOKE] PASS заброс в песок: снасть вернулась
+[SMOKE] итог: ВСЁ ПРОШЛО
+WARNING: 1 RID of type "CanvasItem" was leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2733)
+WARNING: 53 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 6 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 17 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit.
+ERROR: 1 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
