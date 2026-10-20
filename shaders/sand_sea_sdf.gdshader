@@ -265,15 +265,14 @@ vec4 npc_sdf(vec3 p) {
                         vec3(hr * 1.00, hr * 0.42, hr * 0.92)),
                 u_npc_hat, 0.02);
 
-        // глаза — два выразительных шарика на лице (раскраска — npc_paint).
-        // k плавления намеренно мал (0.010): иначе шарик целиком таял
-        // в голове и краске нечего было рисовать (глаза «пропадали»).
-        vec3 ec = u_npc_head.xyz + hfwd * (hr * 0.84) + hup * (hr * 0.12);
+        // глаза — выпуклые шарики, наполовину торчащие из лица: почти без
+        // плавления (k=0.004), форма шара читается чётко и не тает в голове
+        vec3 ec = u_npc_head.xyz + hfwd * (hr * 0.88) + hup * (hr * 0.12);
         float er = u_npc_eyes.z;
         acc = sdf_smooth_union(acc, length(p - (ec + hside * u_npc_eyes.y)) - er,
-                vec3(0.96, 0.89, 0.72), 0.010);
+                vec3(0.97, 0.94, 0.88), 0.004);
         acc = sdf_smooth_union(acc, length(p - (ec - hside * u_npc_eyes.y)) - er,
-                vec3(0.96, 0.89, 0.72), 0.010);
+                vec3(0.97, 0.94, 0.88), 0.004);
         return acc;
 }
 
@@ -290,7 +289,7 @@ vec3 npc_paint(vec3 p, vec3 albedo) {
         vec3 hside = normalize(cross(hfwd, hup));
         float er = u_npc_eyes.z;
         float blink = clamp(u_npc_eyes.x, 0.0, 1.0);
-        vec3 ec = u_npc_head.xyz + hfwd * (hr * 0.84) + hup * (hr * 0.12);
+        vec3 ec = u_npc_head.xyz + hfwd * (hr * 0.88) + hup * (hr * 0.12);
 
         // брови — тёплые тёмные «пятнышки» над глазами (до глаз, чтобы
         // шарики глаз перекрывали края бровей, а не наоборот)
@@ -309,37 +308,29 @@ vec3 npc_paint(vec3 p, vec3 albedo) {
                 vec3 eye_c = ec + sg * u_npc_eyes.y;
                 vec3 d = p - eye_c;
                 float r = length(d);
-                // порог с запасом на fillet плавления (k/4 ≈ 0.0025) — иначе
-                // поверхность шарика оказывалась за пределами краски
-                if (r > er * 1.18) {
+                // порог с запасом на fillet плавления и hit-допуск eps=0.01:
+                // точка краски может стоять до 1 см перед поверхностью шарика
+                if (r > er * 1.35) {
                         continue;
                 }
                 vec3 q = d / max(r, 1e-5);
                 float ang = acos(clamp(dot(q, hfwd), -1.0, 1.0));
-                // плотные заливки без мягких прослоек: белок, радужка, зрачок
-                float iris = 1.0 - smoothstep(0.60, 0.70, ang);
-                float pupil = 1.0 - smoothstep(0.26, 0.33, ang);
-                vec3 col = vec3(0.97, 0.93, 0.84);
-                col = mix(col, mix(vec3(0.16, 0.52, 0.56), vec3(0.85, 0.62, 0.24),
-                                smoothstep(0.08, 0.68, ang)), iris);
-                col = mix(col, vec3(0.03, 0.035, 0.045), pupil);
-                // ровно один блик сверху-сбоку + крошечный отсвет снизу
-                vec3 hl = normalize(hfwd * 0.70 + hup * 0.62 + sg * 0.36);
-                float shine = 1.0 - smoothstep(0.15, 0.22, acos(clamp(dot(q, hl), -1.0, 1.0)));
-                vec3 hl2 = normalize(hfwd * 0.90 - hup * 0.36 - sg * 0.24);
-                shine = max(shine, 0.55 * (1.0 - smoothstep(0.06, 0.11,
-                        acos(clamp(dot(q, hl2), -1.0, 1.0)))));
-                col = mix(col, vec3(1.0, 0.98, 0.92), shine);
-                // веко сверху опускается при моргании
-                float lid = mix(1.25, -1.05, blink);
-                float lidk = smoothstep(lid - 0.10, lid + 0.10, dot(q, hup));
+                // Живой взгляд: белок + плотный диск радужки + зрачок-пуговица
+                // + один блик. Только ПЛОСКИЕ заливки — мягкие градиенты и
+                // каймы складывались в «слои» под перспективой боковых шариков.
+                float iris = 1.0 - smoothstep(0.54, 0.60, ang);
+                float pupil = 1.0 - smoothstep(0.28, 0.34, ang);
+                vec3 col = vec3(0.97, 0.95, 0.91);
+                col = mix(col, vec3(0.14, 0.48, 0.56), iris);
+                col = mix(col, vec3(0.05, 0.06, 0.09), pupil);
+                vec3 hl = normalize(hfwd * 0.70 + hup * 0.60 + sg * 0.36);
+                float shine = 1.0 - smoothstep(0.16, 0.23, acos(clamp(dot(q, hl), -1.0, 1.0)));
+                col = mix(col, vec3(1.0), shine);
+                // моргание: кожа сползает сверху вниз
+                float lid = mix(1.30, -1.10, blink);
+                float lidk = smoothstep(lid - 0.12, lid + 0.12, dot(q, hup));
                 col = mix(col, albedo, lidk);
-                // тонкая тёмная кайма только на самом краю шарика
-                float rim = smoothstep(er * 0.88, er * 1.0, r);
-                col = mix(col, vec3(0.22, 0.12, 0.09), rim * 0.55);
-                // краска живёт на шарике и его fillet-кромке — не растекается
-                // кольцами по лицу (диски двух глаз не пересекаются: зазор 5 см)
-                albedo = mix(albedo, col, 1.0 - smoothstep(er * 1.05, er * 1.18, r));
+                albedo = mix(albedo, col, 1.0 - smoothstep(er * 1.02, er * 1.35, r));
         }
 
         // рот: тёмный овал под носом, открывается при разговоре
@@ -357,7 +348,12 @@ vec3 npc_paint(vec3 p, vec3 albedo) {
 // Возвращает (цвет.rgb, дистанция.w). Дистанция консервативна: пропущенные
 // (далёкие) объекты учитываются через dskips — их сферическая граница,
 // чтобы ray не переступил через невидимую рыбу.
-vec4 map(vec3 p) {
+// real_d — дистанция ТОЛЬКО до настоящих поверхностей (без skip-сфер).
+// Skip-сферы — консервативные границы невидимых объектов; в силуэтном AA
+// их учитывать нельзя: пролёт мимо границы считался бы «касанием» и пиксель
+// красился чёрным (acc.rgb = 0 при невычисленном объекте) — это и есть
+// «чёрный берег в пикселях», и главная нагрузка GPU (5 SDF на пиксель).
+vec4 map_ex(vec3 p, out float real_d) {
         vec4 acc = vec4(0.0, 0.0, 0.0, 1e9);
         float dskips = 1e9;
 
@@ -422,7 +418,13 @@ vec4 map(vec3 p) {
                 }
         }
 
+        real_d = acc.w;
         return vec4(acc.rgb, min(acc.w, dskips));
+}
+
+vec4 map(vec3 p) {
+        float _rd;
+        return map_ex(p, _rd);
 }
 
 float map_dist(vec3 p) { return map(p).w; }
@@ -511,17 +513,23 @@ void fragment() {
                                 if (t + eps > t_far) {
                                         break;
                                 }
-                                float d = map_dist(cam_pos + rd * t);
+                                float real_d;
+                                float d = map_ex(cam_pos + rd * t, real_d).w;
                                 if (d < eps) {
                                         hit = true;
                                         break;
                                 }
-                                float ratio = d / max(t * pixel_angle, 1e-6);
+                                // Силуэтный AA — только по настоящим поверхностям:
+                                // skip-сферы не дают «касание» и чёрную заливку.
+                                float ratio = real_d / max(t * pixel_angle, 1e-6);
                                 if (ratio < coverage) {
                                         coverage = ratio;
                                         t_edge = t;
                                 }
-                                t += max(d, 0.001);
+                                // Минимальный шаг 2 см: у границ skip-сфер d->0
+                                // и луч ползёт по миллиметру, сжигая весь бюджет
+                                // шагов (это и грело видеокарту).
+                                t += max(d, 0.02);
                         }
 
                         if (hit || coverage < 1.0) {

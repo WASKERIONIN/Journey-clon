@@ -26,7 +26,7 @@ const JOINT_RADIUS: Array[float] = [
 const CHAR_SCALE := 1.15 # рост ~2.05 м: выше камеры игрока (1.66 м)
 const HEAD_R := 0.1475 # 0.118 при масштабе 0.92 — растим вместе с телом (×1.25)
 const EYE_SEP := 0.064
-const EYE_R := 0.033
+const EYE_R := 0.036
 
 const QUESTS := [
 	{"title": "Утренний улов", "text": "Поймай любую рыбу × 3", "count": 3},
@@ -171,7 +171,7 @@ func _update_joints(delta: float) -> void:
 	# лёгкие «отвлечённые» взгляды, когда игрок не в фокусе
 	var glance := head_basis * Vector3(sin(_t * 0.29) * 0.16, sin(_t * 0.21 + 1.7) * 0.11, 0.0)
 	want = (want + glance).normalized()
-	_face_fwd = _face_fwd.slerp(want, 1.0 - exp(-5.0 * delta))
+	_face_fwd = _face_fwd.slerp(want, 1.0 - exp(-7.5 * delta))
 	if _face_fwd.length_squared() < 0.25:
 		_face_fwd = want
 	else:
