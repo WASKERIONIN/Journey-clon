@@ -254,23 +254,24 @@ vec4 npc_sdf(vec3 p) {
         vec3 nc = u_npc_head.xyz + hfwd * (hr * 0.92) - hup * (hr * 0.10);
         acc = sdf_smooth_union(acc, length(p - nc) - hr * 0.20, u_npc_skin, 0.015);
 
-        // кепка рыбака: поля + тулья, размер — от радиуса головы
-        vec3 hc = u_npc_head.xyz + hup * (hr * 0.66);
+        // кепка рыбака: аккуратные поля + низкая тулья, размер — от радиуса
+        // головы. Сидит плотно на макушке и не заслоняет лицо.
+        vec3 hc = u_npc_head.xyz + hup * (hr * 0.62);
         acc = sdf_smooth_union(acc,
-                sd_ell_f(p, hc, hside, hup, hfwd, vec3(hr * 1.85, hr * 0.20, hr * 1.70)),
-                u_npc_hat * 0.82, 0.02);
+                sd_ell_f(p, hc, hside, hup, hfwd, vec3(hr * 1.32, hr * 0.10, hr * 1.20)),
+                u_npc_hat * 0.82, 0.018);
         acc = sdf_smooth_union(acc,
-                sd_ell_f(p, hc + hup * (hr * 0.78), hside, hup, hfwd,
-                        vec3(hr * 1.35, hr * 0.85, hr * 1.28)),
+                sd_ell_f(p, hc + hup * (hr * 0.26), hside, hup, hfwd,
+                        vec3(hr * 1.00, hr * 0.42, hr * 0.92)),
                 u_npc_hat, 0.02);
 
-        // глаза — два объёмных шарика (раскраска — npc_paint)
-        vec3 ec = u_npc_head.xyz + hfwd * (hr * 0.82) + hup * (hr * 0.10);
+        // глаза — два шарика, наполовину утопленные в лицо (раскраска — npc_paint)
+        vec3 ec = u_npc_head.xyz + hfwd * (hr * 0.80) + hup * (hr * 0.12);
         float er = u_npc_eyes.z;
         acc = sdf_smooth_union(acc, length(p - (ec + hside * u_npc_eyes.y)) - er,
-                vec3(0.96, 0.89, 0.72), 0.012);
+                vec3(0.96, 0.89, 0.72), 0.016);
         acc = sdf_smooth_union(acc, length(p - (ec - hside * u_npc_eyes.y)) - er,
-                vec3(0.96, 0.89, 0.72), 0.012);
+                vec3(0.96, 0.89, 0.72), 0.016);
         return acc;
 }
 
@@ -287,49 +288,53 @@ vec3 npc_paint(vec3 p, vec3 albedo) {
         vec3 hside = normalize(cross(hfwd, hup));
         float er = u_npc_eyes.z;
         float blink = clamp(u_npc_eyes.x, 0.0, 1.0);
-        vec3 ec = u_npc_head.xyz + hfwd * (hr * 0.82) + hup * (hr * 0.10);
+        vec3 ec = u_npc_head.xyz + hfwd * (hr * 0.80) + hup * (hr * 0.12);
+
+        // брови — тёплые тёмные «пятнышки» над глазами (до глаз, чтобы
+        // шарики глаз перекрывали края бровей, а не наоборот)
+        for (int s = 0; s < 2; s++) {
+                vec3 sg = (s == 0) ? hside : -hside;
+                vec3 bc = ec + sg * u_npc_eyes.y + hup * (hr * 0.26) - hfwd * (hr * 0.14);
+                vec3 bq = p - bc;
+                vec3 bl = vec3(dot(bq, hside), dot(bq, hup), dot(bq, hfwd));
+                float brow = 1.0 - smoothstep(0.72, 1.05,
+                        length(bl / vec3(er * 1.75, er * 0.38, er * 0.90)));
+                albedo = mix(albedo, vec3(0.24, 0.13, 0.09), brow * 0.8);
+        }
 
         for (int s = 0; s < 2; s++) {
                 vec3 sg = (s == 0) ? hside : -hside;
                 vec3 eye_c = ec + sg * u_npc_eyes.y;
                 vec3 d = p - eye_c;
                 float r = length(d);
-                if (r > er * 1.32) {
+                if (r > er * 1.08) {
                         continue;
                 }
                 vec3 q = d / max(r, 1e-5);
                 float ang = acos(clamp(dot(q, hfwd), -1.0, 1.0));
-                float iris = 1.0 - smoothstep(0.68, 0.84, ang);
-                float pupil = 1.0 - smoothstep(0.30, 0.40, ang);
-                float iris_grad = 1.0 - smoothstep(0.10, 0.84, ang);
-                vec3 col = vec3(0.98, 0.92, 0.78);
-                col = mix(col, mix(vec3(0.10, 0.48, 0.54), vec3(0.88, 0.66, 0.22), iris_grad), iris);
-                col = mix(col, vec3(0.025, 0.032, 0.038), pupil);
-                // два блика — крупный сверху-сбоку, мелкий снизу
-                vec3 hl1 = normalize(hfwd * 0.72 + hup * 0.60 + sg * 0.34);
-                float shine = 1.0 - smoothstep(0.26, 0.38, acos(clamp(dot(q, hl1), -1.0, 1.0)));
-                vec3 hl2 = normalize(hfwd * 0.88 - hup * 0.38 - sg * 0.28);
-                shine = max(shine, 1.0 - smoothstep(0.13, 0.21, acos(clamp(dot(q, hl2), -1.0, 1.0))));
-                col = mix(col, vec3(1.0, 0.97, 0.88), shine * 0.95);
-                // веко сверху опускается при моргании (кожа выше линии века)
-                float lid = mix(1.35, -1.15, blink);
-                float lidk = smoothstep(lid - 0.14, lid + 0.14, dot(q, hup));
+                // плотные заливки без мягких прослоек: белок, радужка, зрачок
+                float iris = 1.0 - smoothstep(0.60, 0.70, ang);
+                float pupil = 1.0 - smoothstep(0.26, 0.33, ang);
+                vec3 col = vec3(0.97, 0.93, 0.84);
+                col = mix(col, mix(vec3(0.16, 0.52, 0.56), vec3(0.85, 0.62, 0.24),
+                                smoothstep(0.08, 0.68, ang)), iris);
+                col = mix(col, vec3(0.03, 0.035, 0.045), pupil);
+                // ровно один блик сверху-сбоку + крошечный отсвет снизу
+                vec3 hl = normalize(hfwd * 0.70 + hup * 0.62 + sg * 0.36);
+                float shine = 1.0 - smoothstep(0.15, 0.22, acos(clamp(dot(q, hl), -1.0, 1.0)));
+                vec3 hl2 = normalize(hfwd * 0.90 - hup * 0.36 - sg * 0.24);
+                shine = max(shine, 0.55 * (1.0 - smoothstep(0.06, 0.11,
+                        acos(clamp(dot(q, hl2), -1.0, 1.0)))));
+                col = mix(col, vec3(1.0, 0.98, 0.92), shine);
+                // веко сверху опускается при моргании
+                float lid = mix(1.25, -1.05, blink);
+                float lidk = smoothstep(lid - 0.10, lid + 0.10, dot(q, hup));
                 col = mix(col, albedo, lidk);
-                // тёплая кайма по краю глаза
-                float rim = smoothstep(er * 1.06, er * 1.22, r);
+                // тонкая тёмная кайма только на самом краю шарика
+                float rim = smoothstep(er * 0.88, er * 1.0, r);
                 col = mix(col, vec3(0.22, 0.12, 0.09), rim * 0.55);
-                albedo = mix(albedo, col, 1.0 - smoothstep(er * 1.12, er * 1.30, r));
-        }
-
-        // брови — тёплые тёмные «пятнышки» над глазами
-        for (int s = 0; s < 2; s++) {
-                vec3 sg = (s == 0) ? hside : -hside;
-                vec3 bc = ec + sg * u_npc_eyes.y + hup * (er * 1.85) - hfwd * (hr * 0.10);
-                vec3 bq = p - bc;
-                vec3 bl = vec3(dot(bq, hside), dot(bq, hup), dot(bq, hfwd));
-                float brow = 1.0 - smoothstep(0.72, 1.05,
-                        length(bl / vec3(er * 1.55, er * 0.42, er * 0.85)));
-                albedo = mix(albedo, vec3(0.24, 0.13, 0.09), brow * 0.8);
+                // краска живёт строго на шарике — не растекается кольцами по лицу
+                albedo = mix(albedo, col, 1.0 - smoothstep(er * 0.97, er * 1.05, r));
         }
 
         // рот: тёмный овал под носом, открывается при разговоре

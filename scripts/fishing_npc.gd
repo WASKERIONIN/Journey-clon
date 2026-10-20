@@ -25,8 +25,8 @@ const JOINT_RADIUS: Array[float] = [
 ]
 const CHAR_SCALE := 0.92
 const HEAD_R := 0.118
-const EYE_SEP := 0.062
-const EYE_R := 0.048
+const EYE_SEP := 0.050
+const EYE_R := 0.024
 
 const QUESTS := [
 	{"title": "Утренний улов", "text": "Поймай любую рыбу × 3", "count": 3},
