@@ -322,40 +322,68 @@ float shadow_star_shape(vec2 delta, float angle) {
 	return max(core, max(ray_x, ray_z) * 0.62);
 }
 
+// Россыпь звёзд в мировой сетке: крошечное ядро + мягкий ореол,
+// мерцание от hash-фазы. Клетки прибиты к миру — звёзды не ездят с камерой.
+vec3 shadow_star_field(vec2 xz, float scale, float seed) {
+	vec2 sp = xz * scale;
+	vec2 cell = floor(sp);
+	vec2 local = fract(sp) - 0.5;
+	float sid = hash12(cell + seed);
+	float has = step(mix(0.94, 0.55, shadow_star_density), sid);
+	vec2 off = (vec2(hash12(cell + seed + 1.31),
+		hash12(cell + seed + 7.73)) - 0.5) * 0.62;
+	float d = length(local - off);
+	float tw = 0.55 + 0.45 * sin(TIME * (1.1 + sid * 2.6) + sid * 91.0);
+	float core = exp(-d * d * 620.0);
+	float halo = exp(-d * d * 70.0) * 0.10;
+	vec3 tint = mix(vec3(0.80, 0.90, 1.05), vec3(1.05, 0.98, 0.86),
+		hash12(cell + seed + 4.27));
+	return tint * (core + halo) * has * tw;
+}
+
 void light() {
 	vec3 n = normalize(NORMAL);
 	vec3 l = normalize(LIGHT);
 	vec3 v = normalize(VIEW);
 	float nl = max(dot(n, l), 0.0);
 	float nv = clamp(dot(n, v), 1e-3, 1.0);
-	// ATTENUATION содержит настоящую тень от причала/камней. Каждая звезда
-	// остаётся на песке в мировых координатах, а не перемещается с камерой.
+	// ЗВЁЗДЫ В ТЕНЯХ: тень — окошко в ночное небо. Светятся все тёмные
+	// зоны: отброшенная тень от причала/камней И склоны, отвернувшиеся
+	// от солнца. Днём — редкая холодная россыпь, ночью — яркое поле.
+	// Каждая звезда прибита к мировой сетке и не ездит с камерой.
 	float cast_shadow = smoothstep(0.48, 0.84, 1.0 - clamp(ATTENUATION, 0.0, 1.0));
+	float dark_side = smoothstep(0.22, -0.30, dot(n, l));
+	float star_bed = max(cast_shadow, dark_side * 0.92);
 	float shore_u = clamp((w_pos.z - shore_lut_z_min)
 		/ (shore_lut_z_max - shore_lut_z_min), 0.0, 1.0);
 	float shore_x = texture(shore_lut, vec2(shore_u, 0.5)).r;
 	float dry_sand = smoothstep(0.0, 1.5, w_pos.x - shore_x);
+	float night_stars = smoothstep(0.18, 0.85, night_amount);
+	// два масштаба: крупные редкие + мелкая россыпь
+	vec3 field = shadow_star_field(w_pos.xz, 2.1, 0.0) * 1.25
+		+ shadow_star_field(w_pos.xz, 5.3, 11.7) * 0.85;
+	// Созвездие рыбака — четыре крупные звёзды вокруг квестодателя.
 	float focus_dist = distance(w_pos.xz, shadow_star_focus);
 	float star_zone = 1.0 - smoothstep(shadow_star_radius - 0.6,
 		shadow_star_radius + 0.6, focus_dist);
-	float night_stars = smoothstep(0.18, 0.85, night_amount);
 	vec2 shadow_dir = normalize(-l.xz);
 	vec2 shadow_side = vec2(-shadow_dir.y, shadow_dir.x);
 	vec2 star_p1 = shadow_star_focus - shadow_side * 0.55 + shadow_dir * 0.50;
 	vec2 star_p2 = shadow_star_focus + shadow_side * 0.47 + shadow_dir * 0.42;
 	vec2 star_p3 = shadow_star_focus - shadow_side * 0.38 - shadow_dir * 0.38;
 	vec2 star_p4 = shadow_star_focus + shadow_side * 0.61 - shadow_dir * 0.58;
-	float star_1 = shadow_star_shape(w_pos.xz - star_p1, 0.35)
+	float constellation = shadow_star_shape(w_pos.xz - star_p1, 0.35)
 		* step(shadow_star_density, hash12(vec2(17.1, 2.4)));
-	float star_2 = shadow_star_shape(w_pos.xz - star_p2, 1.20)
-		* step(shadow_star_density, hash12(vec2(31.8, 8.7)));
-	float star_3 = shadow_star_shape(w_pos.xz - star_p3, 2.10)
-		* step(shadow_star_density, hash12(vec2(9.2, 47.3)));
-	float star_4 = shadow_star_shape(w_pos.xz - star_p4, 0.78)
-		* step(shadow_star_density, hash12(vec2(53.7, 16.5)));
-	float stars_here = max(max(star_1, star_2), max(star_3, star_4));
-	DIFFUSE_LIGHT += vec3(1.65, 1.90, 2.40) * stars_here
-		* cast_shadow * dry_sand * star_zone * night_stars * shadow_star_intensity;
+	constellation = max(constellation, shadow_star_shape(w_pos.xz - star_p2, 1.20)
+		* step(shadow_star_density, hash12(vec2(31.8, 8.7))));
+	constellation = max(constellation, shadow_star_shape(w_pos.xz - star_p3, 2.10)
+		* step(shadow_star_density, hash12(vec2(9.2, 47.3))));
+	constellation = max(constellation, shadow_star_shape(w_pos.xz - star_p4, 0.78)
+		* step(shadow_star_density, hash12(vec2(53.7, 16.5))));
+	float star_day = 0.30 + 1.55 * night_stars;
+	DIFFUSE_LIGHT += vec3(1.65, 1.90, 2.40)
+		* (field * star_bed + constellation * star_zone * max(star_bed, 0.30))
+		* dry_sand * star_day * shadow_star_intensity;
 	if (nl > 0.0) {
 	vec3 h = normalize(v + l);
 	float nh = clamp(dot(h, n), 0.0, 1.0);

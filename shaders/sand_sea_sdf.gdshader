@@ -265,13 +265,15 @@ vec4 npc_sdf(vec3 p) {
                         vec3(hr * 1.00, hr * 0.42, hr * 0.92)),
                 u_npc_hat, 0.02);
 
-        // глаза — два шарика, наполовину утопленные в лицо (раскраска — npc_paint)
-        vec3 ec = u_npc_head.xyz + hfwd * (hr * 0.80) + hup * (hr * 0.12);
+        // глаза — два выразительных шарика на лице (раскраска — npc_paint).
+        // k плавления намеренно мал (0.010): иначе шарик целиком таял
+        // в голове и краске нечего было рисовать (глаза «пропадали»).
+        vec3 ec = u_npc_head.xyz + hfwd * (hr * 0.84) + hup * (hr * 0.12);
         float er = u_npc_eyes.z;
         acc = sdf_smooth_union(acc, length(p - (ec + hside * u_npc_eyes.y)) - er,
-                vec3(0.96, 0.89, 0.72), 0.016);
+                vec3(0.96, 0.89, 0.72), 0.010);
         acc = sdf_smooth_union(acc, length(p - (ec - hside * u_npc_eyes.y)) - er,
-                vec3(0.96, 0.89, 0.72), 0.016);
+                vec3(0.96, 0.89, 0.72), 0.010);
         return acc;
 }
 
@@ -288,7 +290,7 @@ vec3 npc_paint(vec3 p, vec3 albedo) {
         vec3 hside = normalize(cross(hfwd, hup));
         float er = u_npc_eyes.z;
         float blink = clamp(u_npc_eyes.x, 0.0, 1.0);
-        vec3 ec = u_npc_head.xyz + hfwd * (hr * 0.80) + hup * (hr * 0.12);
+        vec3 ec = u_npc_head.xyz + hfwd * (hr * 0.84) + hup * (hr * 0.12);
 
         // брови — тёплые тёмные «пятнышки» над глазами (до глаз, чтобы
         // шарики глаз перекрывали края бровей, а не наоборот)
@@ -307,7 +309,9 @@ vec3 npc_paint(vec3 p, vec3 albedo) {
                 vec3 eye_c = ec + sg * u_npc_eyes.y;
                 vec3 d = p - eye_c;
                 float r = length(d);
-                if (r > er * 1.08) {
+                // порог с запасом на fillet плавления (k/4 ≈ 0.0025) — иначе
+                // поверхность шарика оказывалась за пределами краски
+                if (r > er * 1.18) {
                         continue;
                 }
                 vec3 q = d / max(r, 1e-5);
@@ -333,8 +337,9 @@ vec3 npc_paint(vec3 p, vec3 albedo) {
                 // тонкая тёмная кайма только на самом краю шарика
                 float rim = smoothstep(er * 0.88, er * 1.0, r);
                 col = mix(col, vec3(0.22, 0.12, 0.09), rim * 0.55);
-                // краска живёт строго на шарике — не растекается кольцами по лицу
-                albedo = mix(albedo, col, 1.0 - smoothstep(er * 0.97, er * 1.05, r));
+                // краска живёт на шарике и его fillet-кромке — не растекается
+                // кольцами по лицу (диски двух глаз не пересекаются: зазор 5 см)
+                albedo = mix(albedo, col, 1.0 - smoothstep(er * 1.05, er * 1.18, r));
         }
 
         // рот: тёмный овал под носом, открывается при разговоре

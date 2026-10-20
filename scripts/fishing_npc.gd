@@ -23,10 +23,10 @@ const JOINT_RADIUS: Array[float] = [
 	0.095, 0.062, 0.052, 0.095, 0.062, 0.052,
 	0.105, 0.078, 0.052, 0.040, 0.105, 0.078, 0.052, 0.040,
 ]
-const CHAR_SCALE := 0.92
-const HEAD_R := 0.118
-const EYE_SEP := 0.050
-const EYE_R := 0.024
+const CHAR_SCALE := 1.15 # рост ~2.05 м: выше камеры игрока (1.66 м)
+const HEAD_R := 0.1475 # 0.118 при масштабе 0.92 — растим вместе с телом (×1.25)
+const EYE_SEP := 0.064
+const EYE_R := 0.033
 
 const QUESTS := [
 	{"title": "Утренний улов", "text": "Поймай любую рыбу × 3", "count": 3},
@@ -154,7 +154,7 @@ func _update_joints(delta: float) -> void:
 	# макушка — продолжение оси головы: кепка сидит на голове, а не на шее
 	var head_up := head_basis.y.normalized()
 	_joint_world[5] = _joint_world[4] + head_up * 0.20
-	_head_pos = _joint_world[4] + head_up * 0.105
+	_head_pos = _joint_world[4] + head_up * 0.131 # 0.105 при масштабе 0.92
 
 	# «Вперёд» лица — из ориентации модели (модель смотрит вдоль +Z узла):
 	# у костей рига свои оси, и -Z головы смотрит не туда, куда лицо.

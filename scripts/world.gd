@@ -61,13 +61,16 @@ func _build_environment() -> void:
 
 	# Контактная глубина и непрямой экранный свет: без них процедурные дюны
 	# выглядят плоскими даже при хорошем небе и тумане.
+	# Радиус 3 м + интенсивность 2.0 (и SSIL 6 м) давали ЧЁРНЫЕ ПИКСЕЛЬНЫЕ
+	# острова на берегу при скользящих ракурсах — половинное разрешение
+	# экранного эффекта не тянуло такие гигантские ядра.
 	_env.ssao_enabled = true
-	_env.ssao_radius = 3.0
-	_env.ssao_intensity = 2.0
-	_env.ssao_power = 1.35
+	_env.ssao_radius = 1.1
+	_env.ssao_intensity = 1.15
+	_env.ssao_power = 1.0
 	_env.ssil_enabled = true
-	_env.ssil_radius = 6.0
-	_env.ssil_intensity = 0.85
+	_env.ssil_radius = 2.0
+	_env.ssil_intensity = 0.6
 
 	# Дымка в цвет горизонта — для любых материалов со стандартным туманом.
 	_env.fog_enabled = true
