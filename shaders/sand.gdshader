@@ -347,18 +347,16 @@ void light() {
 	vec3 v = normalize(VIEW);
 	float nl = max(dot(n, l), 0.0);
 	float nv = clamp(dot(n, v), 1e-3, 1.0);
-	// ЗВЁЗДЫ В ТЕНЯХ: тень — окошко в ночное небо. Светятся все тёмные
-	// зоны: отброшенная тень от причала/камней И склоны, отвернувшиеся
-	// от солнца. Днём — редкая холодная россыпь, ночью — яркое поле.
-	// Каждая звезда прибита к мировой сетке и не ездит с камерой.
+	// ЗВЁЗДЫ В ТЕНЯХ — ТОЛЬКО в отброшенной тени от предметов (причал,
+	// камни): ни тёмных склонов дюн, ни дневного света. Звёзды прибиты
+	// к мировой сетке и не ездят с камерой.
 	float cast_shadow = smoothstep(0.48, 0.84, 1.0 - clamp(ATTENUATION, 0.0, 1.0));
-	float dark_side = smoothstep(0.22, -0.30, dot(n, l));
-	float star_bed = max(cast_shadow, dark_side * 0.92);
 	float shore_u = clamp((w_pos.z - shore_lut_z_min)
 		/ (shore_lut_z_max - shore_lut_z_min), 0.0, 1.0);
 	float shore_x = texture(shore_lut, vec2(shore_u, 0.5)).r;
 	float dry_sand = smoothstep(0.0, 1.5, w_pos.x - shore_x);
-	float night_stars = smoothstep(0.18, 0.85, night_amount);
+	// днём звёзд нет вообще — тень становится звёздной только к ночи
+	float star_night = smoothstep(0.30, 0.80, night_amount);
 	// два масштаба: крупные редкие + мелкая россыпь
 	vec3 field = shadow_star_field(w_pos.xz, 2.1, 0.0) * 1.25
 		+ shadow_star_field(w_pos.xz, 5.3, 11.7) * 0.85;
@@ -380,10 +378,9 @@ void light() {
 		* step(shadow_star_density, hash12(vec2(9.2, 47.3))));
 	constellation = max(constellation, shadow_star_shape(w_pos.xz - star_p4, 0.78)
 		* step(shadow_star_density, hash12(vec2(53.7, 16.5))));
-	float star_day = 0.30 + 1.55 * night_stars;
 	DIFFUSE_LIGHT += vec3(1.65, 1.90, 2.40)
-		* (field * star_bed + constellation * star_zone * max(star_bed, 0.30))
-		* dry_sand * star_day * shadow_star_intensity;
+		* (field + constellation * star_zone * 1.6)
+		* cast_shadow * dry_sand * star_night * shadow_star_intensity;
 	if (nl > 0.0) {
 	vec3 h = normalize(v + l);
 	float nh = clamp(dot(h, n), 0.0, 1.0);

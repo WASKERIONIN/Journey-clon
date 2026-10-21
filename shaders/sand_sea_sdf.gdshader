@@ -45,6 +45,7 @@ uniform vec3 sand_hot : source_color = vec3(1.00, 0.68, 0.36);
 uniform vec3 sand_shade : source_color = vec3(0.40, 0.32, 0.52);
 uniform vec3 horizon_col : source_color = vec3(0.96, 0.66, 0.55);
 uniform vec3 sky_col : source_color = vec3(0.28, 0.24, 0.43);
+uniform float night_amount : hint_range(0.0, 1.0) = 0.0;
 uniform float fog_distance = 340.0;
 
 // ===== Сцена =====
@@ -308,9 +309,10 @@ vec3 npc_paint(vec3 p, vec3 albedo) {
                 vec3 eye_c = ec + sg * u_npc_eyes.y;
                 vec3 d = p - eye_c;
                 float r = length(d);
-                // порог с запасом на fillet плавления и hit-допуск eps=0.01:
-                // точка краски может стоять до 1 см перед поверхностью шарика
-                if (r > er * 1.35) {
+                // порог щедрый: hit-точка «гуляет» до 1 см (eps). Сама краска
+                // гасится ПО УГЛУ у экватора шарика — радиальной границы на
+                // видимой части нет, и ступеньки марша не превращаются в кольца
+                if (r > er * 1.48) {
                         continue;
                 }
                 vec3 q = d / max(r, 1e-5);
@@ -330,7 +332,11 @@ vec3 npc_paint(vec3 p, vec3 albedo) {
                 float lid = mix(1.30, -1.10, blink);
                 float lidk = smoothstep(lid - 0.12, lid + 0.12, dot(q, hup));
                 col = mix(col, albedo, lidk);
-                albedo = mix(albedo, col, 1.0 - smoothstep(er * 1.02, er * 1.35, r));
+                // край краски — по углу у экватора шарика (в складке слияния);
+                // радиальная часть — только страховочная, вне видимой зоны
+                float dome = (1.0 - smoothstep(1.35, 1.55, ang))
+                        * (1.0 - smoothstep(er * 1.38, er * 1.48, r));
+                albedo = mix(albedo, col, dome);
         }
 
         // рот: тёмный овал под носом, открывается при разговоре
@@ -552,6 +558,13 @@ void fragment() {
                                 float wrap = clamp((ndl + 0.45) / 1.05, 0.0, 1.0);
                                 vec3 col = albedo * (sky_col * 0.55
                                         + sand_sunny * (0.22 + 0.95 * wrap));
+                                // Луна ночью: дневная палитра гаснет почти в ноль,
+                                // и без холодного ключевого света существо теряло
+                                // объём и выглядело «нетекстурным» пятном.
+                                vec3 md = normalize(vec3(-l.x, 0.55, -l.z));
+                                float mnl = clamp(dot(n, md) * 0.5 + 0.5, 0.0, 1.0);
+                                col += albedo * vec3(0.30, 0.38, 0.58)
+                                        * (0.30 + 0.70 * mnl) * night_amount;
                                 // солнечная кромка — как у моря
                                 col += sand_hot * pow(clamp(ndl, 0.0, 1.0), 2.2) * 0.26;
                                 // тёплый отсвет снизу, отскочивший от дюн

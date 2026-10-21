@@ -214,19 +214,21 @@ func _push_sdf() -> void:
 	_sdf_mat.set_shader_parameter("u_npc_eyes", Vector4(_blink, EYE_SEP, EYE_R, 0.0))
 	# ночь чуть синит ткани — та же палитра, что у песка и моря.
 	# Базы яркие: в освещении SDF-существ тёмные цвета тонут в отсвете дюн.
+	# Ночью цвет НЕ выцветает в серый («нетекстурный» вид) — охлаждение
+	# даёт лунный ключ в шейдере, ткани остаются насыщенными.
 	var night := 0.0
 	if main != null and main.game != null:
 		night = main.game.night01
 	_sdf_mat.set_shader_parameter("u_npc_skin",
-		Vector3(0.95, 0.58, 0.34).lerp(Vector3(0.55, 0.42, 0.50), night * 0.5))
+		Vector3(0.95, 0.58, 0.34).lerp(Vector3(0.70, 0.44, 0.44), night * 0.45))
 	_sdf_mat.set_shader_parameter("u_npc_cloth",
-		Vector3(0.10, 0.85, 0.95).lerp(Vector3(0.14, 0.30, 0.55), night * 0.55))
+		Vector3(0.10, 0.85, 0.95).lerp(Vector3(0.16, 0.42, 0.68), night * 0.5))
 	_sdf_mat.set_shader_parameter("u_npc_pants",
-		Vector3(0.62, 0.42, 0.28).lerp(Vector3(0.32, 0.28, 0.38), night * 0.5))
+		Vector3(0.62, 0.42, 0.28).lerp(Vector3(0.42, 0.32, 0.36), night * 0.45))
 	_sdf_mat.set_shader_parameter("u_npc_hat",
-		Vector3(0.66, 0.45, 0.26).lerp(Vector3(0.36, 0.30, 0.38), night * 0.5))
+		Vector3(0.66, 0.45, 0.26).lerp(Vector3(0.48, 0.36, 0.36), night * 0.45))
 	_sdf_mat.set_shader_parameter("u_npc_boot",
-		Vector3(0.42, 0.28, 0.20).lerp(Vector3(0.24, 0.20, 0.28), night * 0.5))
+		Vector3(0.42, 0.28, 0.20).lerp(Vector3(0.30, 0.24, 0.28), night * 0.45))
 
 
 func _find_skeleton(node: Node) -> Skeleton3D:

@@ -549,6 +549,7 @@ func claim_catch(idx: int) -> float:
 func apply_night01(v: float) -> void:
 	if mat == null:
 		return
+	mat.set_shader_parameter("night_amount", v)
 	mat.set_shader_parameter("sand_sunny", Coast.DAY_SUNNY.lerp(Coast.NIGHT_SUNNY, v))
 	mat.set_shader_parameter("sand_hot", Coast.DAY_HOT.lerp(Coast.NIGHT_HOT, v))
 	mat.set_shader_parameter("sand_shade", Coast.DAY_SHADE.lerp(Coast.NIGHT_SHADE, v))
