@@ -15,24 +15,6 @@ ERROR: Condition "status < 0" is true. Returning: ERR_CANT_OPEN
 WARNING: All audio drivers failed, falling back to the dummy driver.
      at: initialize (servers/audio/audio_server.cpp:258)
 
---res://shaders/sand.gdshader--
-  375 |  
-  376 |  float flat_g = smoothstep(0.78, 0.95, w_normal.y);
-E 377->  float near_f = exp(-length(CAMERA_POSITION_WORLD - w_pos) * 0.010);
-  378 |  
-  379 |  vec3 field = shadow_star_field(w_pos.xz, 2.1, 0.0) * 1.25
-SHADER ERROR: Unknown identifier in expression: 'CAMERA_POSITION_WORLD'.
-          at: (null) (res://shaders/sand.gdshader:377)
-          GDScript backtrace (most recent call first):
-              [0] _build_mesh (res://scripts/coast.gd:416)
-              [1] setup (res://scripts/coast.gd:113)
-              [2] _ready (res://scripts/main.gd:59)
-ERROR: Shader compilation failed.
-   at: set_code (servers/rendering/renderer_rd/forward_clustered/scene_shader_forward_clustered.cpp:185)
-   GDScript backtrace (most recent call first):
-       [0] _build_mesh (res://scripts/coast.gd:416)
-       [1] setup (res://scripts/coast.gd:113)
-       [2] _ready (res://scripts/main.gd:59)
 [NPC] CC0 animation playing: Idle_Talking; root=..
 [SHOT] кадры в /home/runner/work/Journey-clon/Journey-clon/.ci-logs/shots
 [SHOT] /home/runner/work/Journey-clon/Journey-clon/.ci-logs/shots/shot_a_coast.png -> 0
@@ -45,7 +27,7 @@ ERROR: Shader compilation failed.
 [SHOT] /home/runner/work/Journey-clon/Journey-clon/.ci-logs/shots/shot_d_bobber.png -> 0
 [SHOT] /home/runner/work/Journey-clon/Journey-clon/.ci-logs/shots/shot_e_bite.png -> 0
 [SHOT] /home/runner/work/Journey-clon/Journey-clon/.ci-logs/shots/shot_f_fight.png -> 0
-[FISH] Морской окунь (54 см, 3.53 кг) — новый вид
+[FISH] Морской окунь (36 см, 1.10 кг) — новый вид
 [SHOT] /home/runner/work/Journey-clon/Journey-clon/.ci-logs/shots/shot_i_caught_fish.png -> 0
 [SHOT] /home/runner/work/Journey-clon/Journey-clon/.ci-logs/shots/shot_g_pier.png -> 0
 [SHOT] /home/runner/work/Journey-clon/Journey-clon/.ci-logs/shots/shot_h_breach.png -> 0
@@ -56,7 +38,7 @@ WARNING: 1 RID of type "CanvasItem" was leaked.
    at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2733)
 WARNING: 10 RIDs of type "Texture" were leaked.
    at: finalize (servers/rendering/rendering_device.cpp:8900)
-WARNING: 42 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+WARNING: 50 ObjectDB instances were leaked at exit (run with `--verbose` for details).
    at: cleanup (core/object/object.cpp:2536)
 ERROR: 10 RID allocations of type 'N10RendererRD14TextureStorage7TextureE' were leaked at exit.
 ERROR: 17 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit.
