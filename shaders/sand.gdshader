@@ -262,10 +262,12 @@ void fragment() {
 	glint *= 1.0 - 0.85 * churn; // потревоженный песок почти не сверкает
 	float glit_fade = exp(-dist * 0.004); // искры живут далеко, до горизонта
 	glint *= 1.0 - 0.85 * wet; // мокрый песок не сверкает
-	glint *= 1.0 - smoothstep(0.12, 0.82, night_amount); // ночью оставляем только искры в тенях
+	glint *= 1.0 - 0.55 * smoothstep(0.12, 0.82, night_amount); // блёстки НЕ гаснут ночью: ~45% искр остаётся («текстура песка исчезает»)
 	// искры бьют сильно (2+ единицы) — даже на ярком песке после
 	// Filmic-тонмаппинга они остаются точками, а glow даёт им ореол
-	base += vec3(1.0, 0.92, 0.70) * (sun_lobe * 2.0 + sky_lobe * 2.2)
+	vec3 glint_col = mix(vec3(1.0, 0.92, 0.70), vec3(0.72, 0.86, 1.15),
+		smoothstep(0.30, 0.85, night_amount)); // ночные искры — лунные, холоднее
+	base += glint_col * (sun_lobe * 2.0 + sky_lobe * 2.2)
 		* glint * glit_fade * mix(0.75, 1.0, ao);
 	// шёлковый отблеск с ФРЕНЕЛЕМ (PBR-отклик): у кромки дюн, под скользящим
 	// взглядом, песок «мокро» блестит сильнее — независимо от солнца
@@ -275,8 +277,10 @@ void fragment() {
 	float fres = 0.35 + 0.65 * pow(1.0 - clamp(dot(N, V), 0.0, 1.0), 3.0);
 	float sheen = pow(clamp(dot(N, H), 0.0, 1.0), 16.0) * 0.7
 		+ pow(clamp(dot(N, H), 0.0, 1.0), 48.0) * 0.3;
-	base += vec3(1.0, 0.72, 0.45) * sheen * fres * 0.045 * near_gloss
-		* smoothstep(0.0, 0.5, wrap) * (1.0 - churn * 0.5) * warm_keep;
+	vec3 sheen_col = mix(vec3(1.0, 0.72, 0.45), vec3(0.70, 0.82, 1.08),
+		smoothstep(0.30, 0.85, night_amount)); // шёлк не гаснет ночью — холодеет
+	base += sheen_col * sheen * fres * 0.045 * near_gloss
+		* smoothstep(0.0, 0.5, wrap) * (1.0 - churn * 0.5);
 	// скользящий ракурс: ближний песок у кромки дюны слегка рдеет
 	base += vec3(0.90, 0.55, 0.35) * (fres - 0.35) * 0.10 * ao * near_gloss
 		* warm_keep;
@@ -368,9 +372,11 @@ void light() {
 	vec3 v = normalize(VIEW);
 	float nl = max(dot(n, l), 0.0);
 	float nv = clamp(dot(n, v), 1e-3, 1.0);
-	// ЗВЁЗДЫ В ТЕНЯХ — ТОЛЬКО в отброшенной тени от предметов (причал,
-	// камни): ни тёмных склонов дюн, ни дневного света. Звёзды прибиты
-	// к мировой сетке и не ездят с камерой.
+	// ЗВЁЗДЫ В ТЕНЯХ — ТОЛЬКО для солнечного (направленного) света!
+	// light() отрабатывает ОТДЕЛЬНО для каждого источника, а маска теней
+	// для фонарика — это затухание по РАССТОЯНИЮ (range 42): звёзды
+	// рисовались кольцом на «странной дистанции» и накладывались дважды.
+	if (LIGHT_IS_DIRECTIONAL) {
 	float cast_shadow = smoothstep(0.55, 0.88, 1.0 - clamp(ATTENUATION, 0.0, 1.0));
 	float shore_u = clamp((w_pos.z - shore_lut_z_min)
 		/ (shore_lut_z_max - shore_lut_z_min), 0.0, 1.0);
@@ -391,7 +397,7 @@ void light() {
 	float focus_dist = distance(w_pos.xz, shadow_star_focus);
 	float star_zone = 1.0 - smoothstep(shadow_star_radius - 0.6,
 		shadow_star_radius + 0.6, focus_dist);
-	vec2 shadow_dir = normalize(-l.xz);
+	vec2 shadow_dir = normalize(-l.xz + vec2(1e-4, 1e-4)); // NaN-proof
 	vec2 shadow_side = vec2(-shadow_dir.y, shadow_dir.x);
 	vec2 star_p1 = shadow_star_focus - shadow_side * 0.55 + shadow_dir * 0.50;
 	vec2 star_p2 = shadow_star_focus + shadow_side * 0.47 + shadow_dir * 0.42;
@@ -409,6 +415,8 @@ void light() {
 		* (field + constellation * star_zone * 1.6)
 		* cast_shadow * dry_sand * star_night * flat_g * near_f
 		* shadow_star_intensity;
+	} // конец блока «только солнечный свет»
+
 	if (nl > 0.0) {
 	vec3 h = normalize(v + l);
 	float nh = clamp(dot(h, n), 0.0, 1.0);
