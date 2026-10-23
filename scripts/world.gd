@@ -13,6 +13,7 @@ var _using_sky_plus := false
 var _cloud_drift := 7.0
 var compat_fallback := false # Vulkan не поднялся → Godot ушёл в Compatibility
 var screen_ao := false # SSAO/SSIL: по умолчанию ВЫКЛ (см. _apply_screen_ao)
+var volumetric := true # объёмный туман: тумблер для A/B на своей видеокарте
 
 
 func setup(game_ref) -> void:
@@ -100,6 +101,14 @@ func _build_environment() -> void:
 	var world_env := WorldEnvironment.new()
 	world_env.environment = _env
 	add_child(world_env)
+
+
+## Объёмный туман — A/B-тумблер: на некоторых драйверах объёмный проход
+## бывает источником артефактов, а стоить он может несколько кадров.
+func set_volumetric(on: bool) -> void:
+	volumetric = on
+	if _env != null:
+		_env.volumetric_fog_enabled = on
 
 
 ## Экранное AO (SSAO + SSIL) — A/B-тумблер для DEV-панели и для тех, кто
@@ -314,24 +323,29 @@ func apply_night01(v: float) -> void:
 	# Заливка. Ночью небо почти чёрное, и если ambient задавить (было 0.42),
 	# песок освещает ТОЛЬКО фонарик: выключил его — всё чёрное. Дневная
 	# заливка, наоборот, слабее солнца, иначе кадр уходит в белое.
-	_env.ambient_light_energy = lerpf(0.72, 1.35, n)
-	# Небо ночью почти чёрное, и одного множителя энергии мало: ambient = sky.
-	# Поэтому к ночи часть заливки берём из ЯВНОГО цвета (лунно-синего), а не
-	# из неба. Днём sky_contribution = 1.0, то есть поведение не меняется.
-	_env.ambient_light_color = Color(0.78, 0.82, 0.92).lerp(Color(0.17, 0.21, 0.36), n)
-	_env.ambient_light_sky_contribution = lerpf(1.0, 0.42, n)
-	_env.tonemap_exposure = lerpf(0.95, 1.24, n)
-	_env.fog_light_color = Game.HORIZON_COL.lerp(Color(0.15, 0.20, 0.34), n)
+	_env.ambient_light_energy = lerpf(0.72, 0.95, n)
+	# ВАЖНО (это и был корень «чёрного песка»): в Godot
+	# `ambient_light_energy` действует, ТОЛЬКО когда
+	# `ambient_light_sky_contribution < 1.0`. При contribution = 1.0
+	# (дефолт) вся заливка берётся из СРЕДНЕЙ радиации неба: ночью небо
+	# в кадре светлое у горизонта, но его средняя энергия — почти ноль,
+	# поэтому земля получала ~0 заливки и была видна только с фонарём.
+	# Ночью отдаём 45% заливки явному лунно-синему цвету.
+	# Днём sky_contribution = 1.0, то есть поведение не меняется.
+	_env.ambient_light_color = Color(0.78, 0.82, 0.92).lerp(Color(0.13, 0.17, 0.30), n)
+	_env.ambient_light_sky_contribution = lerpf(1.0, 0.55, n)
+	_env.tonemap_exposure = lerpf(0.95, 1.12, n)
+	_env.fog_light_color = Game.HORIZON_COL.lerp(Color(0.13, 0.17, 0.30), n)
 	# днём дымка лёгкая (0.008 volumetric = белая пелена на полкадра),
 	# к ночи туман сгущается — но 0.019 заливало кадр молоком и стирало
 	# рельеф дюн: держим объём читаемым, глубину даёт свет, а не мгла.
-	_env.fog_density = lerpf(0.0011, 0.0034, n) if not compat_fallback \
-		else lerpf(0.0011, 0.010, n)
-	_env.volumetric_fog_density = lerpf(0.0016, 0.011, n)
-	_env.volumetric_fog_albedo = Color(0.72, 0.72, 0.72).lerp(Color(0.46, 0.52, 0.64), n)
+	_env.fog_density = lerpf(0.0011, 0.0022, n) if not compat_fallback \
+		else lerpf(0.0011, 0.008, n)
+	_env.volumetric_fog_density = lerpf(0.0016, 0.0045, n)
+	_env.volumetric_fog_albedo = Color(0.72, 0.72, 0.72).lerp(Color(0.46, 0.52, 0.66), n)
 	# Ночной glow: порог ниже — искры песка и фонарь пирса дают тёплый ореол,
 	# не превращая небо в белое пятно.
-	_env.glow_hdr_threshold = lerpf(1.15, 0.95, n)
+	_env.glow_hdr_threshold = lerpf(1.15, 1.02, n)
 	if _using_sky_plus:
 		_sky_mat.set_shader_parameter("exposure", lerpf(13.5, 9.5, n))
 		_sky_mat.set_shader_parameter("sundisc_intensity", lerpf(32.0, 10.0, n))
@@ -340,8 +354,8 @@ func apply_night01(v: float) -> void:
 		_sky_mat.set_shader_parameter("sun_intensity", lerpf(50.0, 8.0, n))
 	# «Луна» — тот же направленный источник: ночью он не должен гаснуть в
 	# ноль, иначе дюны теряют форму и остаётся плоская заливка.
-	_sun.light_energy = lerpf(0.85, 1.05, n)
-	_sun.light_color = Color(1.0, 0.83, 0.66).lerp(Color(0.62, 0.72, 1.0), n)
+	_sun.light_energy = lerpf(0.85, 0.70, n)
+	_sun.light_color = Color(1.0, 0.83, 0.66).lerp(Color(0.58, 0.70, 1.0), n)
 
 
 ## Смена солнца: небо + свет (базис и цвет по Кельвину — низкое солнце

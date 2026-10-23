@@ -19,6 +19,7 @@ var _sun_azim := -61.4
 var _live: Array[Dictionary] = []
 var _ssao_check: CheckBox
 var _msaa_check: CheckBox
+var _vol_check: CheckBox
 
 
 func setup(main_ref) -> void:
@@ -74,10 +75,13 @@ func _build_ui() -> void:
 	_ssao_check = _toggle("SSAO/SSIL (экранное AO)", world.screen_ao,
 		func(on): world.set_screen_ao(on))
 	_ssao_check.tooltip_text = "Чёрные прямоугольники на песке ночью — это половинное разрешение SSAO/SSIL. Выключено по умолчанию; включайте для A/B на своей видеокарте."
-	_msaa_check = _toggle("MSAA 4x (2x по умолчанию)", false,
+	_msaa_check = _toggle("MSAA 2x (сглаживание)", true,
 		func(on):
-			get_viewport().msaa_3d = Viewport.MSAA_4X if on else Viewport.MSAA_2X)
-	_msaa_check.tooltip_text = "PSSM + экранные эффекты + MSAA 4x/8x = известные чёрные квадраты (godot#103669). 4x оставлен для проверки на своей GPU."
+			get_viewport().msaa_3d = Viewport.MSAA_2X if on else Viewport.MSAA_DISABLED)
+	_msaa_check.tooltip_text = "Связка «PSSM-тени + экранные эффекты + MSAA 4x/8x» даёт чёрные квадраты (godot#103669/#81060). Проект живёт на 2x: если на вашей видеокарте песок всё ещё чёрный — выключите MSAA полностью и сравните."
+	_vol_check = _toggle("Объёмный туман", world.volumetric,
+		func(on): world.set_volumetric(on))
+	_vol_check.tooltip_text = "Второй подозреваемый в «чёрных островах»: объёмный проход. Выключите и сравните кадр — разница видна сразу."
 
 	_section("ВРЕМЯ СУТОК")
 	_slider("Время (0=день, 1=ночь)", 0.0, 1.0, main.game.night01, 0.01,
@@ -275,7 +279,9 @@ func _refresh() -> void:
 	if _ssao_check != null:
 		_ssao_check.set_pressed_no_signal(main.world.screen_ao)
 	if _msaa_check != null:
-		_msaa_check.set_pressed_no_signal(get_viewport().msaa_3d == Viewport.MSAA_4X)
+		_msaa_check.set_pressed_no_signal(get_viewport().msaa_3d != Viewport.MSAA_DISABLED)
+	if _vol_check != null:
+		_vol_check.set_pressed_no_signal(main.world.volumetric)
 
 
 # ---------------------------------------------------------------------------

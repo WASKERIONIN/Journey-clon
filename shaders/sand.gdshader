@@ -312,8 +312,8 @@ void fragment() {
 		// чем ниже солнце, тем темнее небесный ambient — тем больше нужна луна
 		float low_sun = 1.0 - smoothstep(0.05, 0.25, L.y);
 		vec3 moon = mix(sand_shade, sand_sunny, mnl) * (0.30 + 0.55 * mnl);
-		EMISSION = (base * 0.22 + moon * 0.42)
-			* (0.45 + 0.55 * low_sun) * nightk * mix(0.55, 1.0, ao)
+		EMISSION = (base * 0.30 + moon * 0.40)
+			* (0.45 + 0.55 * low_sun) * nightk * mix(0.70, 1.0, ao)
 			* (1.0 - fog);
 	}
 

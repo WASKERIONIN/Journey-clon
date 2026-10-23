@@ -477,10 +477,10 @@ func set_night01(v: float) -> void:
 	m.set_shader_parameter("sand_shade", DAY_SHADE.lerp(NIGHT_SHADE, v))
 	m.set_shader_parameter("horizon_col", DAY_HORIZON.lerp(NIGHT_HORIZON, v))
 	m.set_shader_parameter("sky_col", DAY_SKY.lerp(NIGHT_SKY, v))
-	m.set_shader_parameter("fog_distance", lerpf(340.0, 170.0, v))
+	m.set_shader_parameter("fog_distance", lerpf(340.0, 240.0, v))
 	# Ночью искры — главная «текстура» песка: раньше их давили до 0.06 и
 	# песок становился ровной заливкой. Лунные искры холоднее, но живые.
-	m.set_shader_parameter("glitter_amount", lerpf(0.20, 0.16, v))
+	m.set_shader_parameter("glitter_amount", lerpf(0.20, 0.18, v))
 	m.set_shader_parameter("night_amount", v)
 
 
