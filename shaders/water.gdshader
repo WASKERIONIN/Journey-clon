@@ -434,6 +434,12 @@ void light() {
 	float nh = clamp(dot(h, n), 0.0, 1.0);
 	float hl = clamp(dot(h, l), 0.0, 1.0);
 	vec3 radiance = LIGHT_COLOR * ATTENUATION;
+	// НОЧНОЙ БЛИК. Светило почти на горизонте + плоская вода = взгляд
+	// почти по зеркальному направлению: GGX-пик уходит в сотни единиц
+	// HDR, и на кадре получается белый СТОЛБ от горизонта до берега
+	// (это и было видно на тестовом кадре ночного моря). Ограничиваем
+	// зеркальную часть и гасим её ночью; диффуз живёт как обычно.
+	float spec_night = mix(1.0, 0.16, smoothstep(0.35, 0.85, night_amount));
 
 	if (proxima_test < 0.5) {
 		// Обычный Schlick-GGX для базового сравнения.
@@ -451,7 +457,8 @@ void light() {
 		float burley_v = 1.0 + (fd90 - 1.0) * pow(1.0 - nv, 5.0);
 		DIFFUSE_LIGHT += radiance * ALBEDO * (1.0 / PI)
 			* burley_l * burley_v * nl;
-		SPECULAR_LIGHT += radiance * d * gl * gv * f / max(4.0 * nl * nv, 1e-3);
+		SPECULAR_LIGHT += min(radiance * d * gl * gv * f
+			/ max(4.0 * nl * nv, 1e-3), vec3(16.0)) * spec_night;
 	} else {
 	// Diffuse Proxima: Fresnel tint, retroreflection и smooth terminator.
 	float alpha = ROUGHNESS * ROUGHNESS;
@@ -488,7 +495,7 @@ void light() {
 		- proxima_r(proxima_specular_fresnel_falloff)) * (1.0 - f0) * fh;
 	vec3 fs = d * gl * gv * fresnel * nl;
 	DIFFUSE_LIGHT += radiance * fd;
-	SPECULAR_LIGHT += radiance * fs;
+	SPECULAR_LIGHT += min(radiance * fs, vec3(16.0)) * spec_night;
 	}
 	}
 }
