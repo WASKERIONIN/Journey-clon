@@ -26,15 +26,14 @@ WORLD: Vulkan недоступен — Compatibility-фолбэк, волюме�
 [SMOKE] брод: кадр 240 x=-2.4 глубина=0.78 wet01=1.00
 [SMOKE] заброс: поплавок в (-0.7, 0.00, -14.0), сила 14.09
 [SMOKE] поклёвка! подсекаем (кадр 1)
-[SMOKE] вываживание: кадр 180, рывок=false, натяг=60, прогресс=38
-[SMOKE] вываживание: кадр 360, рывок=true, натяг=58, прогресс=42
-[SMOKE] вываживание: кадр 540, рывок=false, натяг=62, прогресс=50
-[SMOKE] вываживание: кадр 720, рывок=false, натяг=62, прогресс=64
-[SMOKE] вываживание: кадр 900, рывок=false, натяг=55, прогресс=62
+[SMOKE] вываживание: кадр 180, рывок=false, натяг=62, прогресс=46
+[SMOKE] вываживание: кадр 360, рывок=true, натяг=56, прогресс=40
+[SMOKE] вываживание: кадр 540, рывок=false, натяг=62, прогресс=57
+[SMOKE] вываживание: кадр 720, рывок=false, натяг=62, прогресс=74
+[SMOKE] вываживание: кадр 900, рывок=false, натяг=62, прогресс=78
 [SMOKE] рыба: долго, state=5, on_land=false, lure=mid
-[SMOKE] вываживание: кадр 1080, рывок=false, натяг=62, прогресс=82
-[SMOKE] вываживание: кадр 1260, рывок=false, натяг=0, прогресс=100
-[FISH] Песчаная манта (102 см, 11.91 кг) — новый вид
+[SMOKE] вываживание: кадр 1080, рывок=false, натяг=0, прогресс=100
+[FISH] Красный луциан (71 см, 5.91 кг) — новый вид
 [SMOKE] PASS мир: берег собран
 [SMOKE] PASS мир: море собрано
 [SMOKE] PASS мир: существа собраны
@@ -61,7 +60,7 @@ WORLD: Vulkan недоступен — Compatibility-фолбэк, волюме�
 [SMOKE] PASS поплавок на уровне моря (y=0.00)
 [SMOKE] PASS заброс: дальность 14.1 м
 [SMOKE] PASS рыба: подсечка удалась
-[SMOKE] PASS рыба: поймана (размер 102.40)
+[SMOKE] PASS рыба: поймана (размер 71.40)
 [SMOKE] PASS рыба: удочка снова наготове
 [SMOKE] PASS рыба: в море остались существа
 [SMOKE] PASS снасть: возвращается в руки (line_retrieved)
@@ -72,7 +71,7 @@ WORLD: Vulkan недоступен — Compatibility-фолбэк, волюме�
 [SMOKE] итог: ВСЁ ПРОШЛО
 WARNING: 1 RID of type "CanvasItem" was leaked.
    at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2733)
-WARNING: 56 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+WARNING: 54 ObjectDB instances were leaked at exit (run with `--verbose` for details).
    at: cleanup (core/object/object.cpp:2536)
 ERROR: 6 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
 ERROR: 18 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit.
