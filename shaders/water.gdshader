@@ -287,7 +287,7 @@ void fragment() {
 
 	float path_power = mix(180.0, 34.0, far_glit);
 	float path = pow(clamp(dot(N, H), 0.0, 1.0), path_power);
-	base += lit_col * path * 0.55 * mix(1.0, 0.30, night_amount)
+	base += lit_col * path * 0.55 * mix(1.0, 0.15, night_amount)
 		* (1.0 - 0.85 * near_shore);
 	// СОЛНЕЧНЫЙ глиттер — не широкая полоса света: редкие отдельные
 	// отражающие «частицы» собираются только в направлении солнечной дорожки.
