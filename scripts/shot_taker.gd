@@ -305,6 +305,21 @@ func _process(delta: float) -> void:
 				main.cam_rig.set_view(-PI * 0.5, -0.16)
 			if _fs > 6:
 				_capture("shot_v_night_sea.png")
+				# Диагностика белого «столба» у пирса: SDF-слой существ
+				# включался для кадра рыбака (состояние 13) и так и остался
+				# включённым. Проверяем, он ли рисует столб.
+				main.fish.set_sdf_enabled(false)
+				main.fish_kit.set_sdf_enabled(false)
+				_go(23)
+		23: # тот же кадр без SDF-слоя существ
+			if _fs > 6:
+				_capture("shot_w_night_sea_nosdf.png")
+				main.world.set_volumetric(false)
+				_go(24)
+		24: # тот же кадр без объёмного тумана
+			if _fs > 6:
+				_capture("shot_x_night_sea_novolfog.png")
+				main.world.set_volumetric(true)
 				_finish("")
 
 
