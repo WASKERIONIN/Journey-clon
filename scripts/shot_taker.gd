@@ -314,12 +314,12 @@ func _process(delta: float) -> void:
 		23: # тот же кадр без SDF-слоя существ
 			if _fs > 6:
 				_capture("shot_w_night_sea_nosdf.png")
-				main.world.set_volumetric(false)
+				main.world.set_sun_fog_energy(0.0)
 				_go(24)
-		24: # тот же кадр без объёмного тумана
+		24: # тот же кадр без объёмного рассеяния от направленного света
 			if _fs > 6:
-				_capture("shot_x_night_sea_novolfog.png")
-				main.world.set_volumetric(true)
+				_capture("shot_x_night_sea_nosunfog.png")
+				main.world.set_sun_fog_energy(-1.0)
 				_finish("")
 
 
