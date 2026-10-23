@@ -1,6 +1,24 @@
 Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
 
 WORLD: Vulkan недоступен — Compatibility-фолбэк, волюметрический туман заменён плотной дымкой
+--Main Shader--
+  375 |  
+  376 |  float flat_g = smoothstep(0.78, 0.95, w_normal.y);
+E 377->  float near_f = exp(-length(CAMERA_POSITION_WORLD - w_pos) * 0.010);
+  378 |  
+  379 |  vec3 field = shadow_star_field(w_pos.xz, 2.1, 0.0) * 1.25
+SHADER ERROR: Unknown identifier in expression: 'CAMERA_POSITION_WORLD'.
+          at: (null) (:377)
+          GDScript backtrace (most recent call first):
+              [0] _build_mesh (res://scripts/coast.gd:416)
+              [1] setup (res://scripts/coast.gd:113)
+              [2] _ready (res://scripts/main.gd:59)
+ERROR: Shader compilation failed.
+   at: shader_set_code (servers/rendering/dummy/storage/material_storage.cpp:192)
+   GDScript backtrace (most recent call first):
+       [0] _build_mesh (res://scripts/coast.gd:416)
+       [1] setup (res://scripts/coast.gd:113)
+       [2] _ready (res://scripts/main.gd:59)
 [NPC] CC0 animation playing: Idle_Talking; root=..
 [SMOKE] урез при z=-14: x=7.4, спавн=(33.4, -14.0)
 [SMOKE] ходьба: кадр 30 spd=3.40 (33.4, -12.6)
@@ -26,9 +44,8 @@ WORLD: Vulkan недоступен — Compatibility-фолбэк, волюме�
 [SMOKE] брод: кадр 240 x=-2.4 глубина=0.78 wet01=1.00
 [SMOKE] заброс: поплавок в (-0.7, 0.00, -14.0), сила 14.09
 [SMOKE] поклёвка! подсекаем (кадр 1)
-[SMOKE] вываживание: кадр 180, рывок=false, натяг=46, прогресс=57
-[SMOKE] вываживание: кадр 360, рывок=true, натяг=56, прогресс=83
-[FISH] Усач-грунтовик (38 см, 0.96 кг) — новый вид
+[SMOKE] вываживание: кадр 180, рывок=false, натяг=43, прогресс=76
+[FISH] Серебристая макрель (30 см, 0.54 кг) — новый вид
 [SMOKE] PASS мир: берег собран
 [SMOKE] PASS мир: море собрано
 [SMOKE] PASS мир: существа собраны
@@ -55,7 +72,7 @@ WORLD: Vulkan недоступен — Compatibility-фолбэк, волюме�
 [SMOKE] PASS поплавок на уровне моря (y=0.00)
 [SMOKE] PASS заброс: дальность 14.1 м
 [SMOKE] PASS рыба: подсечка удалась
-[SMOKE] PASS рыба: поймана (размер 38.10)
+[SMOKE] PASS рыба: поймана (размер 30.10)
 [SMOKE] PASS рыба: удочка снова наготове
 [SMOKE] PASS рыба: в море остались существа
 [SMOKE] PASS снасть: возвращается в руки (line_retrieved)
@@ -66,8 +83,8 @@ WORLD: Vulkan недоступен — Compatibility-фолбэк, волюме�
 [SMOKE] итог: ВСЁ ПРОШЛО
 WARNING: 1 RID of type "CanvasItem" was leaked.
    at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2733)
-WARNING: 54 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+WARNING: 53 ObjectDB instances were leaked at exit (run with `--verbose` for details).
    at: cleanup (core/object/object.cpp:2536)
 ERROR: 6 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
-ERROR: 18 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit.
+ERROR: 17 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit.
 ERROR: 1 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
