@@ -121,6 +121,7 @@ func apply_night01(v: float) -> void:
 	# редкие огни остаются, а звёзды на песке не превращаются в сплошную россыпь.
 	set_param("glitter_amount", lerpf(1.0, 0.08, _night01))
 	set_param("solar_glitter_amount", lerpf(1.0, 0.0, _night01))
+	set_param("night_amount", _night01)
 
 
 func _process(_delta: float) -> void:

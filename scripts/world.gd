@@ -177,6 +177,11 @@ func _build_sun() -> void:
 	_sun.shadow_enabled = true
 	_sun.directional_shadow_max_distance = 180.0
 	_sun.directional_shadow_fade_start = 0.75
+	# Акне карты теней при низком солнце рисовало на склонах чёрные
+	# прямоугольные блоки («полигональная сетка») — крутим смещение и блюр.
+	_sun.shadow_bias = 0.4
+	_sun.shadow_normal_bias = 2.2
+	_sun.shadow_blur = 1.25
 	_sun.light_volumetric_fog_energy = 0.75
 	add_child(_sun)
 
