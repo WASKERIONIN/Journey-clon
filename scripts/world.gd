@@ -61,13 +61,16 @@ func _build_environment() -> void:
 
 	# Контактная глубина и непрямой экранный свет: без них процедурные дюны
 	# выглядят плоскими даже при хорошем небе и тумане.
+	# Радиус 3 м + интенсивность 2.0 (и SSIL 6 м) давали ЧЁРНЫЕ ПИКСЕЛЬНЫЕ
+	# острова на берегу при скользящих ракурсах — половинное разрешение
+	# экранного эффекта не тянуло такие гигантские ядра.
 	_env.ssao_enabled = true
-	_env.ssao_radius = 3.0
-	_env.ssao_intensity = 2.0
-	_env.ssao_power = 1.35
+	_env.ssao_radius = 1.1
+	_env.ssao_intensity = 1.15
+	_env.ssao_power = 1.0
 	_env.ssil_enabled = true
-	_env.ssil_radius = 6.0
-	_env.ssil_intensity = 0.85
+	_env.ssil_radius = 2.0
+	_env.ssil_intensity = 0.6
 
 	# Дымка в цвет горизонта — для любых материалов со стандартным туманом.
 	_env.fog_enabled = true
@@ -174,6 +177,11 @@ func _build_sun() -> void:
 	_sun.shadow_enabled = true
 	_sun.directional_shadow_max_distance = 180.0
 	_sun.directional_shadow_fade_start = 0.75
+	# Акне карты теней при низком солнце рисовало на склонах чёрные
+	# прямоугольные блоки («полигональная сетка») — крутим смещение и блюр.
+	_sun.shadow_bias = 0.4
+	_sun.shadow_normal_bias = 2.2
+	_sun.shadow_blur = 1.25
 	_sun.light_volumetric_fog_energy = 0.75
 	add_child(_sun)
 

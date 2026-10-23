@@ -49,6 +49,7 @@ uniform float ripple_speed = 1.1;
 uniform float ripple_strength = 0.34;
 uniform float glitter_amount = 1.0; // общий мелкий глиттер поверхности
 uniform float solar_glitter_amount = 1.0; // отдельные частицы солнечной дорожки
+uniform float night_amount : hint_range(0.0, 1.0) = 0.0; // 0=день, 1=ночь
 // Временный A/B-тест прямого света: Proxima diffuse + Schlick-GGX.
 // По умолчанию выключен, солнечный глиттер от него не зависит.
 uniform float proxima_test = 0.0;
@@ -337,8 +338,19 @@ void fragment() {
 	vec3 fcol = mix(horizon_col, sky_col, above * 0.6);
 	// Искры — отдельный HDR-слой: они остаются резкими поверх дымки,
 	// а glow даёт им маленький ореол, не превращая дорожку в сплошную полосу.
+	// Ночная луна: та же схема, что у песка — холодный ключ в EMISSION,
+	// иначе глубокой ночью вода уходит в чёрный квадрат.
+	float nightk = smoothstep(0.35, 0.85, night_amount);
+	vec3 moon_reveal = vec3(0.0);
+	if (nightk > 0.0) {
+		vec3 md = normalize(vec3(L.x, 0.55, L.z));
+		float mnl = clamp(dot(N, md) * 0.5 + 0.5, 0.0, 1.0);
+		float low_sun = 1.0 - smoothstep(0.05, 0.25, L.y);
+		moon_reveal = base * (0.65 + 0.55 * mnl) * (0.35 + 0.65 * low_sun)
+			* nightk * (1.0 - fog);
+	}
 	ALBEDO = mix(base - distant_glitter, fcol, fog);
-	EMISSION = distant_glitter;
+	EMISSION = distant_glitter + moon_reveal;
 
 	NORMAL = normalize((VIEW_MATRIX * vec4(N.x, N.y, N.z, 0.0)).xyz);
 	float rough = mix(0.16, 0.55, near_shore);

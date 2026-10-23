@@ -23,10 +23,10 @@ const JOINT_RADIUS: Array[float] = [
 	0.095, 0.062, 0.052, 0.095, 0.062, 0.052,
 	0.105, 0.078, 0.052, 0.040, 0.105, 0.078, 0.052, 0.040,
 ]
-const CHAR_SCALE := 0.92
-const HEAD_R := 0.118
-const EYE_SEP := 0.062
-const EYE_R := 0.048
+const CHAR_SCALE := 1.15 # рост ~2.05 м: выше камеры игрока (1.66 м)
+const HEAD_R := 0.1475 # 0.118 при масштабе 0.92 — растим вместе с телом (×1.25)
+const EYE_SEP := 0.064
+const EYE_R := 0.036
 
 const QUESTS := [
 	{"title": "Утренний улов", "text": "Поймай любую рыбу × 3", "count": 3},
@@ -154,7 +154,7 @@ func _update_joints(delta: float) -> void:
 	# макушка — продолжение оси головы: кепка сидит на голове, а не на шее
 	var head_up := head_basis.y.normalized()
 	_joint_world[5] = _joint_world[4] + head_up * 0.20
-	_head_pos = _joint_world[4] + head_up * 0.105
+	_head_pos = _joint_world[4] + head_up * 0.131 # 0.105 при масштабе 0.92
 
 	# «Вперёд» лица — из ориентации модели (модель смотрит вдоль +Z узла):
 	# у костей рига свои оси, и -Z головы смотрит не туда, куда лицо.
@@ -171,7 +171,7 @@ func _update_joints(delta: float) -> void:
 	# лёгкие «отвлечённые» взгляды, когда игрок не в фокусе
 	var glance := head_basis * Vector3(sin(_t * 0.29) * 0.16, sin(_t * 0.21 + 1.7) * 0.11, 0.0)
 	want = (want + glance).normalized()
-	_face_fwd = _face_fwd.slerp(want, 1.0 - exp(-5.0 * delta))
+	_face_fwd = _face_fwd.slerp(want, 1.0 - exp(-7.5 * delta))
 	if _face_fwd.length_squared() < 0.25:
 		_face_fwd = want
 	else:
@@ -214,19 +214,21 @@ func _push_sdf() -> void:
 	_sdf_mat.set_shader_parameter("u_npc_eyes", Vector4(_blink, EYE_SEP, EYE_R, 0.0))
 	# ночь чуть синит ткани — та же палитра, что у песка и моря.
 	# Базы яркие: в освещении SDF-существ тёмные цвета тонут в отсвете дюн.
+	# Ночью цвет НЕ выцветает в серый («нетекстурный» вид) — охлаждение
+	# даёт лунный ключ в шейдере, ткани остаются насыщенными.
 	var night := 0.0
 	if main != null and main.game != null:
 		night = main.game.night01
 	_sdf_mat.set_shader_parameter("u_npc_skin",
-		Vector3(0.95, 0.58, 0.34).lerp(Vector3(0.55, 0.42, 0.50), night * 0.5))
+		Vector3(0.95, 0.58, 0.34).lerp(Vector3(0.70, 0.44, 0.44), night * 0.45))
 	_sdf_mat.set_shader_parameter("u_npc_cloth",
-		Vector3(0.10, 0.85, 0.95).lerp(Vector3(0.14, 0.30, 0.55), night * 0.55))
+		Vector3(0.10, 0.85, 0.95).lerp(Vector3(0.16, 0.42, 0.68), night * 0.5))
 	_sdf_mat.set_shader_parameter("u_npc_pants",
-		Vector3(0.62, 0.42, 0.28).lerp(Vector3(0.32, 0.28, 0.38), night * 0.5))
+		Vector3(0.62, 0.42, 0.28).lerp(Vector3(0.42, 0.32, 0.36), night * 0.45))
 	_sdf_mat.set_shader_parameter("u_npc_hat",
-		Vector3(0.66, 0.45, 0.26).lerp(Vector3(0.36, 0.30, 0.38), night * 0.5))
+		Vector3(0.66, 0.45, 0.26).lerp(Vector3(0.48, 0.36, 0.36), night * 0.45))
 	_sdf_mat.set_shader_parameter("u_npc_boot",
-		Vector3(0.42, 0.28, 0.20).lerp(Vector3(0.24, 0.20, 0.28), night * 0.5))
+		Vector3(0.42, 0.28, 0.20).lerp(Vector3(0.30, 0.24, 0.28), night * 0.45))
 
 
 func _find_skeleton(node: Node) -> Skeleton3D:

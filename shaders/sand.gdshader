@@ -176,15 +176,19 @@ void fragment() {
 	float wrap = clamp((ndl + 0.45) / 1.05, 0.0, 1.0);
 	vec3 base = mix(sand_shade, sand_sunny, smoothstep(0.0, 0.68, wrap));
 	base = mix(base, sand_hot, pow(wrap, 2.0) * (0.35 + 0.50 * crest));
+	// глубокой ночью солнечные добавки гаснут: иначе лунный EMISSION-подсвет
+	// вытаскивал тёплую «закатную» составляющую и суша уходила в серо-розовый
+	float warm_keep = 1.0 - smoothstep(0.45, 0.85, night_amount);
 	// солнечная кромка: склоны, отвесные к солнцу, светятся изнутри
-	base += vec3(1.0, 0.62, 0.34) * pow(clamp(ndl, 0.0, 1.0), 2.2) * 0.16;
+	base += vec3(1.0, 0.62, 0.34) * pow(clamp(ndl, 0.0, 1.0), 2.2) * 0.16 * warm_keep;
 	// прямое солнце AO почти не слушается, полусфера — целиком
 	base *= mix(1.0, ao, 0.32);
 	// заливка неба: сиреневая прохлада на теневых склонах
 	base += sand_shade * clamp(N.y, 0.0, 1.0) * 0.22 * ao * (1.0 - wrap);
 	// отблеск песка: тёплый свет, отскочивший от дюн, греет тень
 	vec3 B = normalize(vec3(-L.x, 0.55, -L.z));
-	base += vec3(1.00, 0.58, 0.32) * clamp(dot(N, B), 0.0, 1.0) * 0.28 * ao * (1.0 - wrap * 0.6);
+	base += vec3(1.00, 0.58, 0.32) * clamp(dot(N, B), 0.0, 1.0) * 0.28 * ao
+		* (1.0 - wrap * 0.6) * warm_keep;
 	// ложбины — прохладнее тоном (глубину уже дал AO)
 	base = mix(base, sand_shade, hollow * 0.18);
 	// крупный тональный шум: дюны не одинаковые
@@ -258,10 +262,12 @@ void fragment() {
 	glint *= 1.0 - 0.85 * churn; // потревоженный песок почти не сверкает
 	float glit_fade = exp(-dist * 0.004); // искры живут далеко, до горизонта
 	glint *= 1.0 - 0.85 * wet; // мокрый песок не сверкает
-	glint *= 1.0 - smoothstep(0.12, 0.82, night_amount); // ночью оставляем только искры в тенях
+	glint *= 1.0 - 0.55 * smoothstep(0.12, 0.82, night_amount); // блёстки НЕ гаснут ночью: ~45% искр остаётся («текстура песка исчезает»)
 	// искры бьют сильно (2+ единицы) — даже на ярком песке после
 	// Filmic-тонмаппинга они остаются точками, а glow даёт им ореол
-	base += vec3(1.0, 0.92, 0.70) * (sun_lobe * 2.0 + sky_lobe * 2.2)
+	vec3 glint_col = mix(vec3(1.0, 0.92, 0.70), vec3(0.72, 0.86, 1.15),
+		smoothstep(0.30, 0.85, night_amount)); // ночные искры — лунные, холоднее
+	base += glint_col * (sun_lobe * 2.0 + sky_lobe * 2.2)
 		* glint * glit_fade * mix(0.75, 1.0, ao);
 	// шёлковый отблеск с ФРЕНЕЛЕМ (PBR-отклик): у кромки дюн, под скользящим
 	// взглядом, песок «мокро» блестит сильнее — независимо от солнца
@@ -271,15 +277,34 @@ void fragment() {
 	float fres = 0.35 + 0.65 * pow(1.0 - clamp(dot(N, V), 0.0, 1.0), 3.0);
 	float sheen = pow(clamp(dot(N, H), 0.0, 1.0), 16.0) * 0.7
 		+ pow(clamp(dot(N, H), 0.0, 1.0), 48.0) * 0.3;
-	base += vec3(1.0, 0.72, 0.45) * sheen * fres * 0.045 * near_gloss
+	vec3 sheen_col = mix(vec3(1.0, 0.72, 0.45), vec3(0.70, 0.82, 1.08),
+		smoothstep(0.30, 0.85, night_amount)); // шёлк не гаснет ночью — холодеет
+	base += sheen_col * sheen * fres * 0.045 * near_gloss
 		* smoothstep(0.0, 0.5, wrap) * (1.0 - churn * 0.5);
 	// скользящий ракурс: ближний песок у кромки дюны слегка рдеет
-	base += vec3(0.90, 0.55, 0.35) * (fres - 0.35) * 0.10 * ao * near_gloss;
+	base += vec3(0.90, 0.55, 0.35) * (fres - 0.35) * 0.10 * ao * near_gloss
+		* warm_keep;
 
 	// ---------- 4. Дымка к горизонту ----------
 	float fog = 1.0 - exp(-pow(dist / fog_distance, 2.1));
 	float above = smoothstep(-2.0, 16.0, w_pos.y - CAMERA_POSITION_WORLD.y);
 	vec3 fcol = mix(horizon_col, sky_col, above * 0.6);
+
+	// ---------- 4a. Ночная луна ----------
+	// Глубокой ночью небесный ambient почти чёрный, а прямое солнце у
+	// горизонта гаснет и самозатеняется: тёмная альбедо × тёмный свет =
+	// ЧЁРНАЯ суша, по которой нельзя ходить. Лунный ключ печём в EMISSION:
+	// его не умножает свет и не гасят тени — дюны ночью читаются с любого
+	// ракурса, а форма остаётся запечённой в base (wrap + AO).
+	float nightk = smoothstep(0.35, 0.85, night_amount);
+	if (nightk > 0.0) {
+		vec3 md = normalize(vec3(L.x, 0.55, L.z)); // луна над стороной солнца
+		float mnl = clamp(dot(N, md) * 0.5 + 0.5, 0.0, 1.0);
+		// чем ниже солнце, тем темнее небесный ambient — тем больше нужна луна
+		float low_sun = 1.0 - smoothstep(0.05, 0.25, L.y);
+		EMISSION = base * (0.65 + 0.55 * mnl) * (0.35 + 0.65 * low_sun)
+			* nightk * (1.0 - fog);
+	}
 
 	ALBEDO = mix(base, fcol, fog);
 	// Аналитическая нормаль следов и ряби теперь питает реальный BRDF,
@@ -322,40 +347,76 @@ float shadow_star_shape(vec2 delta, float angle) {
 	return max(core, max(ray_x, ray_z) * 0.62);
 }
 
+// Россыпь звёзд в мировой сетке: крошечное ядро + мягкий ореол,
+// мерцание от hash-фазы. Клетки прибиты к миру — звёзды не ездят с камерой.
+vec3 shadow_star_field(vec2 xz, float scale, float seed) {
+	vec2 sp = xz * scale;
+	vec2 cell = floor(sp);
+	vec2 local = fract(sp) - 0.5;
+	float sid = hash12(cell + seed);
+	float has = step(mix(0.94, 0.55, shadow_star_density), sid);
+	vec2 off = (vec2(hash12(cell + seed + 1.31),
+		hash12(cell + seed + 7.73)) - 0.5) * 0.62;
+	float d = length(local - off);
+	float tw = 0.55 + 0.45 * sin(TIME * (1.1 + sid * 2.6) + sid * 91.0);
+	float core = exp(-d * d * 620.0);
+	float halo = exp(-d * d * 70.0) * 0.10;
+	vec3 tint = mix(vec3(0.80, 0.90, 1.05), vec3(1.05, 0.98, 0.86),
+		hash12(cell + seed + 4.27));
+	return tint * (core + halo) * has * tw;
+}
+
 void light() {
 	vec3 n = normalize(NORMAL);
 	vec3 l = normalize(LIGHT);
 	vec3 v = normalize(VIEW);
 	float nl = max(dot(n, l), 0.0);
 	float nv = clamp(dot(n, v), 1e-3, 1.0);
-	// ATTENUATION содержит настоящую тень от причала/камней. Каждая звезда
-	// остаётся на песке в мировых координатах, а не перемещается с камерой.
-	float cast_shadow = smoothstep(0.48, 0.84, 1.0 - clamp(ATTENUATION, 0.0, 1.0));
+	// ЗВЁЗДЫ В ТЕНЯХ — ТОЛЬКО для солнечного (направленного) света!
+	// light() отрабатывает ОТДЕЛЬНО для каждого источника, а маска теней
+	// для фонарика — это затухание по РАССТОЯНИЮ (range 42): звёзды
+	// рисовались кольцом на «странной дистанции» и накладывались дважды.
+	if (LIGHT_IS_DIRECTIONAL) {
+	float cast_shadow = smoothstep(0.55, 0.88, 1.0 - clamp(ATTENUATION, 0.0, 1.0));
 	float shore_u = clamp((w_pos.z - shore_lut_z_min)
 		/ (shore_lut_z_max - shore_lut_z_min), 0.0, 1.0);
 	float shore_x = texture(shore_lut, vec2(shore_u, 0.5)).r;
 	float dry_sand = smoothstep(0.0, 1.5, w_pos.x - shore_x);
+	// днём звёзд нет вообще — тень становится звёздной только к ночи
+	float star_night = smoothstep(0.30, 0.80, night_amount);
+	// звёзды — только на РОВНОМ песке и неподалёку: тени от предметов и
+	// строений падают на плоское, а склоны при низком солнце покрыты
+	// акне карты теней — звёзды там рисовали «полигональную сетку»
+	float flat_g = smoothstep(0.78, 0.95, w_normal.y);
+	vec3 cam_w = (INV_VIEW_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+	float near_f = exp(-length(cam_w - w_pos) * 0.010);
+	// два масштаба: крупные редкие + мелкая россыпь
+	vec3 field = shadow_star_field(w_pos.xz, 2.1, 0.0) * 1.25
+		+ shadow_star_field(w_pos.xz, 5.3, 11.7) * 0.85;
+	// Созвездие рыбака — четыре крупные звёзды вокруг квестодателя.
 	float focus_dist = distance(w_pos.xz, shadow_star_focus);
 	float star_zone = 1.0 - smoothstep(shadow_star_radius - 0.6,
 		shadow_star_radius + 0.6, focus_dist);
-	float night_stars = smoothstep(0.18, 0.85, night_amount);
-	vec2 shadow_dir = normalize(-l.xz);
+	vec2 shadow_dir = normalize(-l.xz + vec2(1e-4, 1e-4)); // NaN-proof
 	vec2 shadow_side = vec2(-shadow_dir.y, shadow_dir.x);
 	vec2 star_p1 = shadow_star_focus - shadow_side * 0.55 + shadow_dir * 0.50;
 	vec2 star_p2 = shadow_star_focus + shadow_side * 0.47 + shadow_dir * 0.42;
 	vec2 star_p3 = shadow_star_focus - shadow_side * 0.38 - shadow_dir * 0.38;
 	vec2 star_p4 = shadow_star_focus + shadow_side * 0.61 - shadow_dir * 0.58;
-	float star_1 = shadow_star_shape(w_pos.xz - star_p1, 0.35)
+	float constellation = shadow_star_shape(w_pos.xz - star_p1, 0.35)
 		* step(shadow_star_density, hash12(vec2(17.1, 2.4)));
-	float star_2 = shadow_star_shape(w_pos.xz - star_p2, 1.20)
-		* step(shadow_star_density, hash12(vec2(31.8, 8.7)));
-	float star_3 = shadow_star_shape(w_pos.xz - star_p3, 2.10)
-		* step(shadow_star_density, hash12(vec2(9.2, 47.3)));
-	float star_4 = shadow_star_shape(w_pos.xz - star_p4, 0.78)
-		* step(shadow_star_density, hash12(vec2(53.7, 16.5)));
-	float stars_here = max(max(star_1, star_2), max(star_3, star_4));
-	DIFFUSE_LIGHT += vec3(1.65, 1.90, 2.40) * stars_here
-		* cast_shadow * dry_sand * star_zone * night_stars * shadow_star_intensity;
+	constellation = max(constellation, shadow_star_shape(w_pos.xz - star_p2, 1.20)
+		* step(shadow_star_density, hash12(vec2(31.8, 8.7))));
+	constellation = max(constellation, shadow_star_shape(w_pos.xz - star_p3, 2.10)
+		* step(shadow_star_density, hash12(vec2(9.2, 47.3))));
+	constellation = max(constellation, shadow_star_shape(w_pos.xz - star_p4, 0.78)
+		* step(shadow_star_density, hash12(vec2(53.7, 16.5))));
+	DIFFUSE_LIGHT += vec3(1.65, 1.90, 2.40)
+		* (field + constellation * star_zone * 1.6)
+		* cast_shadow * dry_sand * star_night * flat_g * near_f
+		* shadow_star_intensity;
+	} // конец блока «только солнечный свет»
+
 	if (nl > 0.0) {
 	vec3 h = normalize(v + l);
 	float nh = clamp(dot(h, n), 0.0, 1.0);

@@ -231,6 +231,47 @@ func _process(delta: float) -> void:
 				Input.action_release("npc_quest_1")
 			if t > 0.4 and _fs > 4:
 				_capture("shot_n_quest.png")
+				_go(15)
+		15: # Ночь у берега + фонарик: разбор «всё чернеет» — контроль БЕЗ фонаря
+			if _fs == 1:
+				main.set_time(1.0)
+				# низкое солнце над морем — тёмное небо, как в отчёте игрока
+				main.apply_sun(Vector3(-0.55, 0.06, -0.30).normalized())
+				var sx := main.coast.shore_x(Coast.SPAWN_Z) + 6.0
+				main.player.global_position = Vector3(sx,
+					main.coast.ground_height(sx, Coast.SPAWN_Z), Coast.SPAWN_Z)
+				main.player.vel = Vector3.ZERO
+				main.player.grounded = true
+				main.hud.visible = false
+				main.catch_card.visible = false
+				main.cam_rig.set_view(PI * 0.5, -0.02) # взгляд на сушу (+X)
+				main.cam_rig.flashlight.visible = false
+				main.cam_rig.flash_on = false
+			if t > 0.5 and _fs > 6:
+				_capture("shot_o_flash_off.png")
+				main.cam_rig.flashlight.visible = true
+				main.cam_rig.flash_on = true
+				_go(16)
+		16: # фонарик включён «как есть» — главная улика игрока
+			if _fs > 6:
+				_capture("shot_p_flash_full.png")
+				main.cam_rig.flashlight.shadow_enabled = false
+				_go(17)
+		17: # фонарик без теней — если чернота уйдёт, виновата карта теней
+			if _fs > 6:
+				_capture("shot_q_flash_noshadow.png")
+				main.cam_rig.flashlight.shadow_enabled = true
+				main.cam_rig.flashlight.light_volumetric_fog_energy = 0.0
+				_go(18)
+		18: # фонарик без объёмного луча — если чернота уйдёт, виноват объёмный туман
+			if _fs > 6:
+				_capture("shot_r_flash_nofog.png")
+				main.cam_rig.flashlight.light_volumetric_fog_energy = 2.2
+				main.cam_rig.flashlight.light_energy = 0.0
+				_go(19)
+		19: # источник видим, но энергии 0 — только путь шейдера light() на кадр
+			if _fs > 6:
+				_capture("shot_s_flash_zero.png")
 				_finish("")
 
 

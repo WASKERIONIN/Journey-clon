@@ -45,6 +45,7 @@ uniform vec3 sand_hot : source_color = vec3(1.00, 0.68, 0.36);
 uniform vec3 sand_shade : source_color = vec3(0.40, 0.32, 0.52);
 uniform vec3 horizon_col : source_color = vec3(0.96, 0.66, 0.55);
 uniform vec3 sky_col : source_color = vec3(0.28, 0.24, 0.43);
+uniform float night_amount : hint_range(0.0, 1.0) = 0.0;
 uniform float fog_distance = 340.0;
 
 // ===== Сцена =====
@@ -254,23 +255,25 @@ vec4 npc_sdf(vec3 p) {
         vec3 nc = u_npc_head.xyz + hfwd * (hr * 0.92) - hup * (hr * 0.10);
         acc = sdf_smooth_union(acc, length(p - nc) - hr * 0.20, u_npc_skin, 0.015);
 
-        // кепка рыбака: поля + тулья, размер — от радиуса головы
-        vec3 hc = u_npc_head.xyz + hup * (hr * 0.66);
+        // кепка рыбака: аккуратные поля + низкая тулья, размер — от радиуса
+        // головы. Сидит плотно на макушке и не заслоняет лицо.
+        vec3 hc = u_npc_head.xyz + hup * (hr * 0.62);
         acc = sdf_smooth_union(acc,
-                sd_ell_f(p, hc, hside, hup, hfwd, vec3(hr * 1.85, hr * 0.20, hr * 1.70)),
-                u_npc_hat * 0.82, 0.02);
+                sd_ell_f(p, hc, hside, hup, hfwd, vec3(hr * 1.32, hr * 0.10, hr * 1.20)),
+                u_npc_hat * 0.82, 0.018);
         acc = sdf_smooth_union(acc,
-                sd_ell_f(p, hc + hup * (hr * 0.78), hside, hup, hfwd,
-                        vec3(hr * 1.35, hr * 0.85, hr * 1.28)),
+                sd_ell_f(p, hc + hup * (hr * 0.26), hside, hup, hfwd,
+                        vec3(hr * 1.00, hr * 0.42, hr * 0.92)),
                 u_npc_hat, 0.02);
 
-        // глаза — два объёмных шарика (раскраска — npc_paint)
-        vec3 ec = u_npc_head.xyz + hfwd * (hr * 0.82) + hup * (hr * 0.10);
+        // глаза — выпуклые шарики, наполовину торчащие из лица: почти без
+        // плавления (k=0.004), форма шара читается чётко и не тает в голове
+        vec3 ec = u_npc_head.xyz + hfwd * (hr * 0.88) + hup * (hr * 0.12);
         float er = u_npc_eyes.z;
         acc = sdf_smooth_union(acc, length(p - (ec + hside * u_npc_eyes.y)) - er,
-                vec3(0.96, 0.89, 0.72), 0.012);
+                vec3(0.97, 0.94, 0.88), 0.004);
         acc = sdf_smooth_union(acc, length(p - (ec - hside * u_npc_eyes.y)) - er,
-                vec3(0.96, 0.89, 0.72), 0.012);
+                vec3(0.97, 0.94, 0.88), 0.004);
         return acc;
 }
 
@@ -287,49 +290,53 @@ vec3 npc_paint(vec3 p, vec3 albedo) {
         vec3 hside = normalize(cross(hfwd, hup));
         float er = u_npc_eyes.z;
         float blink = clamp(u_npc_eyes.x, 0.0, 1.0);
-        vec3 ec = u_npc_head.xyz + hfwd * (hr * 0.82) + hup * (hr * 0.10);
+        vec3 ec = u_npc_head.xyz + hfwd * (hr * 0.88) + hup * (hr * 0.12);
+
+        // брови — тёплые тёмные «пятнышки» над глазами (до глаз, чтобы
+        // шарики глаз перекрывали края бровей, а не наоборот)
+        for (int s = 0; s < 2; s++) {
+                vec3 sg = (s == 0) ? hside : -hside;
+                vec3 bc = ec + sg * u_npc_eyes.y + hup * (hr * 0.26) - hfwd * (hr * 0.14);
+                vec3 bq = p - bc;
+                vec3 bl = vec3(dot(bq, hside), dot(bq, hup), dot(bq, hfwd));
+                float brow = 1.0 - smoothstep(0.72, 1.05,
+                        length(bl / vec3(er * 1.75, er * 0.38, er * 0.90)));
+                albedo = mix(albedo, vec3(0.24, 0.13, 0.09), brow * 0.8);
+        }
 
         for (int s = 0; s < 2; s++) {
                 vec3 sg = (s == 0) ? hside : -hside;
                 vec3 eye_c = ec + sg * u_npc_eyes.y;
                 vec3 d = p - eye_c;
                 float r = length(d);
-                if (r > er * 1.32) {
+                // порог щедрый: hit-точка «гуляет» до 1 см (eps). Сама краска
+                // гасится ПО УГЛУ у экватора шарика — радиальной границы на
+                // видимой части нет, и ступеньки марша не превращаются в кольца
+                if (r > er * 1.48) {
                         continue;
                 }
                 vec3 q = d / max(r, 1e-5);
                 float ang = acos(clamp(dot(q, hfwd), -1.0, 1.0));
-                float iris = 1.0 - smoothstep(0.68, 0.84, ang);
-                float pupil = 1.0 - smoothstep(0.30, 0.40, ang);
-                float iris_grad = 1.0 - smoothstep(0.10, 0.84, ang);
-                vec3 col = vec3(0.98, 0.92, 0.78);
-                col = mix(col, mix(vec3(0.10, 0.48, 0.54), vec3(0.88, 0.66, 0.22), iris_grad), iris);
-                col = mix(col, vec3(0.025, 0.032, 0.038), pupil);
-                // два блика — крупный сверху-сбоку, мелкий снизу
-                vec3 hl1 = normalize(hfwd * 0.72 + hup * 0.60 + sg * 0.34);
-                float shine = 1.0 - smoothstep(0.26, 0.38, acos(clamp(dot(q, hl1), -1.0, 1.0)));
-                vec3 hl2 = normalize(hfwd * 0.88 - hup * 0.38 - sg * 0.28);
-                shine = max(shine, 1.0 - smoothstep(0.13, 0.21, acos(clamp(dot(q, hl2), -1.0, 1.0))));
-                col = mix(col, vec3(1.0, 0.97, 0.88), shine * 0.95);
-                // веко сверху опускается при моргании (кожа выше линии века)
-                float lid = mix(1.35, -1.15, blink);
-                float lidk = smoothstep(lid - 0.14, lid + 0.14, dot(q, hup));
+                // Живой взгляд: белок + плотный диск радужки + зрачок-пуговица
+                // + один блик. Только ПЛОСКИЕ заливки — мягкие градиенты и
+                // каймы складывались в «слои» под перспективой боковых шариков.
+                float iris = 1.0 - smoothstep(0.54, 0.60, ang);
+                float pupil = 1.0 - smoothstep(0.28, 0.34, ang);
+                vec3 col = vec3(0.97, 0.95, 0.91);
+                col = mix(col, vec3(0.14, 0.48, 0.56), iris);
+                col = mix(col, vec3(0.05, 0.06, 0.09), pupil);
+                vec3 hl = normalize(hfwd * 0.70 + hup * 0.60 + sg * 0.36);
+                float shine = 1.0 - smoothstep(0.16, 0.23, acos(clamp(dot(q, hl), -1.0, 1.0)));
+                col = mix(col, vec3(1.0), shine);
+                // моргание: кожа сползает сверху вниз
+                float lid = mix(1.30, -1.10, blink);
+                float lidk = smoothstep(lid - 0.12, lid + 0.12, dot(q, hup));
                 col = mix(col, albedo, lidk);
-                // тёплая кайма по краю глаза
-                float rim = smoothstep(er * 1.06, er * 1.22, r);
-                col = mix(col, vec3(0.22, 0.12, 0.09), rim * 0.55);
-                albedo = mix(albedo, col, 1.0 - smoothstep(er * 1.12, er * 1.30, r));
-        }
-
-        // брови — тёплые тёмные «пятнышки» над глазами
-        for (int s = 0; s < 2; s++) {
-                vec3 sg = (s == 0) ? hside : -hside;
-                vec3 bc = ec + sg * u_npc_eyes.y + hup * (er * 1.85) - hfwd * (hr * 0.10);
-                vec3 bq = p - bc;
-                vec3 bl = vec3(dot(bq, hside), dot(bq, hup), dot(bq, hfwd));
-                float brow = 1.0 - smoothstep(0.72, 1.05,
-                        length(bl / vec3(er * 1.55, er * 0.42, er * 0.85)));
-                albedo = mix(albedo, vec3(0.24, 0.13, 0.09), brow * 0.8);
+                // край краски — по углу у экватора шарика (в складке слияния);
+                // радиальная часть — только страховочная, вне видимой зоны
+                float dome = (1.0 - smoothstep(1.35, 1.55, ang))
+                        * (1.0 - smoothstep(er * 1.38, er * 1.48, r));
+                albedo = mix(albedo, col, dome);
         }
 
         // рот: тёмный овал под носом, открывается при разговоре
@@ -347,7 +354,12 @@ vec3 npc_paint(vec3 p, vec3 albedo) {
 // Возвращает (цвет.rgb, дистанция.w). Дистанция консервативна: пропущенные
 // (далёкие) объекты учитываются через dskips — их сферическая граница,
 // чтобы ray не переступил через невидимую рыбу.
-vec4 map(vec3 p) {
+// real_d — дистанция ТОЛЬКО до настоящих поверхностей (без skip-сфер).
+// Skip-сферы — консервативные границы невидимых объектов; в силуэтном AA
+// их учитывать нельзя: пролёт мимо границы считался бы «касанием» и пиксель
+// красился чёрным (acc.rgb = 0 при невычисленном объекте) — это и есть
+// «чёрный берег в пикселях», и главная нагрузка GPU (5 SDF на пиксель).
+vec4 map_ex(vec3 p, out float real_d) {
         vec4 acc = vec4(0.0, 0.0, 0.0, 1e9);
         float dskips = 1e9;
 
@@ -412,7 +424,13 @@ vec4 map(vec3 p) {
                 }
         }
 
+        real_d = acc.w;
         return vec4(acc.rgb, min(acc.w, dskips));
+}
+
+vec4 map(vec3 p) {
+        float _rd;
+        return map_ex(p, _rd);
 }
 
 float map_dist(vec3 p) { return map(p).w; }
@@ -501,17 +519,23 @@ void fragment() {
                                 if (t + eps > t_far) {
                                         break;
                                 }
-                                float d = map_dist(cam_pos + rd * t);
+                                float real_d;
+                                float d = map_ex(cam_pos + rd * t, real_d).w;
                                 if (d < eps) {
                                         hit = true;
                                         break;
                                 }
-                                float ratio = d / max(t * pixel_angle, 1e-6);
+                                // Силуэтный AA — только по настоящим поверхностям:
+                                // skip-сферы не дают «касание» и чёрную заливку.
+                                float ratio = real_d / max(t * pixel_angle, 1e-6);
                                 if (ratio < coverage) {
                                         coverage = ratio;
                                         t_edge = t;
                                 }
-                                t += max(d, 0.001);
+                                // Минимальный шаг 2 см: у границ skip-сфер d->0
+                                // и луч ползёт по миллиметру, сжигая весь бюджет
+                                // шагов (это и грело видеокарту).
+                                t += max(d, 0.02);
                         }
 
                         if (hit || coverage < 1.0) {
@@ -534,6 +558,13 @@ void fragment() {
                                 float wrap = clamp((ndl + 0.45) / 1.05, 0.0, 1.0);
                                 vec3 col = albedo * (sky_col * 0.55
                                         + sand_sunny * (0.22 + 0.95 * wrap));
+                                // Луна ночью: дневная палитра гаснет почти в ноль,
+                                // и без холодного ключевого света существо теряло
+                                // объём и выглядело «нетекстурным» пятном.
+                                vec3 md = normalize(vec3(-l.x, 0.55, -l.z));
+                                float mnl = clamp(dot(n, md) * 0.5 + 0.5, 0.0, 1.0);
+                                col += albedo * vec3(0.30, 0.38, 0.58)
+                                        * (0.30 + 0.70 * mnl) * night_amount;
                                 // солнечная кромка — как у моря
                                 col += sand_hot * pow(clamp(ndl, 0.0, 1.0), 2.2) * 0.26;
                                 // тёплый отсвет снизу, отскочивший от дюн

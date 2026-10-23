@@ -549,6 +549,7 @@ func claim_catch(idx: int) -> float:
 func apply_night01(v: float) -> void:
 	if mat == null:
 		return
+	mat.set_shader_parameter("night_amount", v)
 	mat.set_shader_parameter("sand_sunny", Coast.DAY_SUNNY.lerp(Coast.NIGHT_SUNNY, v))
 	mat.set_shader_parameter("sand_hot", Coast.DAY_HOT.lerp(Coast.NIGHT_HOT, v))
 	mat.set_shader_parameter("sand_shade", Coast.DAY_SHADE.lerp(Coast.NIGHT_SHADE, v))
@@ -578,9 +579,9 @@ func set_sdf_enabled(on: bool) -> void:
 
 
 ## Показать пойманную рыбу через тот же SDF raymarcher, что и живую стаю.
-func set_catch_visual(owner: Node, pos: Vector3, size: float, heading: float,
+func set_catch_visual(holder: Node, pos: Vector3, size: float, heading: float,
 		phase: float, tint: Color, flex: float) -> void:
-	_catch_owner = owner
+	_catch_owner = holder
 	_catch_active = true
 	_catch_pos = pos
 	_catch_size = clampf(size, 0.08, 1.2)
@@ -590,8 +591,8 @@ func set_catch_visual(owner: Node, pos: Vector3, size: float, heading: float,
 	_catch_tint = tint
 
 
-func clear_catch_visual(owner: Node) -> void:
-	if _catch_owner == owner:
+func clear_catch_visual(holder: Node) -> void:
+	if _catch_owner == holder:
 		_catch_owner = null
 		_catch_active = false
 		_catch_flex = 1.0

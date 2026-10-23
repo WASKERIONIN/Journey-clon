@@ -74,7 +74,6 @@ func _on_draw() -> void:
 	var bar_a_col := C_SAND
 	var label_a := ""
 	var label_b := ""
-	var urgent := false
 
 	match rod.state:
 		RodCast.S.RESTING:
@@ -100,7 +99,6 @@ func _on_draw() -> void:
 		RodCast.S.BITE:
 			hint = "КЛЮЁТ — подсекай! (ЛКМ)"
 			hint_col = C_SAND
-			urgent = true
 			bar_a = rod.bite_window01()
 			label_a = "окно подсечки"
 			bar_a_col = C_SAND.lerp(C_BAD, 1.0 - bar_a)
@@ -110,7 +108,6 @@ func _on_draw() -> void:
 			if rod.is_pulling():
 				hint = "РЫВОК — отпусти ЛКМ!"
 				hint_col = C_WARN
-				urgent = true
 			elif t01 > 0.72:
 				hint = "Натяг высокий — ослабь"
 				hint_col = C_WARN
