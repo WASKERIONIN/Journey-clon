@@ -30,6 +30,10 @@ enabled=PackedStringArray()
 
 renderer/rendering_method="forward_plus"
 renderer/rendering_method.mobile="gl_compatibility"
-anti_aliasing/quality/msaa_3d=2
+; MSAA 2x, а не 4x: связка «PSSM-тени + экранные эффекты (SSAO/SSIL) +
+; MSAA 4x/8x» даёт в Forward+ чёрные прямоугольники вокруг геометрии
+; (godotengine/godot#103669, #81060) — именно их видно на песке ночью.
+; 2x убирает лесенку на дюнах и не попадает в известную комбинацию.
+anti_aliasing/quality/msaa_3d=1
 textures/vram_compression/import_etc2_astc=true
 environment/defaults/default_clear_color=Color(0.35, 0.27, 0.38, 1)

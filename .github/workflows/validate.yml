@@ -105,7 +105,7 @@ jobs:
           SHOT_DIR="$PWD/.ci-logs/shots" JOURNEY_SHOT=1 \
             xvfb-run -a -s "-screen 0 1280x720x24" \
             godot_bin/godot --path . --rendering-method forward_plus \
-            --resolution 1280x720 --fixed-fps 30 --quit-after 700 \
+            --resolution 1280x720 --fixed-fps 30 --quit-after 950 \
             > render.log 2>&1 || true
           cat render.log
           ls -la .ci-logs/shots || true

@@ -39,21 +39,26 @@ func setup(main_ref) -> void:
 	flashlight = SpotLight3D.new()
 	cam.add_child(flashlight)
 	flashlight.position = Vector3(0.10, -0.26, 0.0)
-	flashlight.rotation_degrees = Vector3(-11.0, 0.0, 0.0)
-	flashlight.spot_range = 42.0
-	flashlight.spot_angle = 27.0
-	# decay затухания: формула Godot = (1-(d/range)^4)^2 * d^(-decay).
-	# При старом decay 1.4 фонарь на 7 м давал 6.6% энергии — «всё чернеет»
-	# при включённом фонарике: конус был мертвенно тусклым. decay 0.2 и
-	# энергия 5.0 — яркая лужа под ногами и читаемый луч вдаль.
-	flashlight.spot_attenuation = 0.2
-	flashlight.light_color = Color(1.0, 0.93, 0.80)
-	flashlight.light_energy = 5.0
+	flashlight.rotation_degrees = Vector3(-9.0, 0.0, 0.0)
+	flashlight.spot_range = 34.0
+	flashlight.spot_angle = 30.0
+	# Мягкий край конуса: пятно на песке не «вырезано ножницами» и не
+	# превращается в прожектор, который выжигает полкадра.
+	flashlight.spot_angle_attenuation = 1.2
+	# Затухание Godot ≈ (1-(d/range)^4)^2 * d^(-attenuation). Раньше тут
+	# стояли decay 0.2 + энергия 5.0: фонарь почти не гас с расстоянием,
+	# заливал всё вокруг и МАСКИРОВАЛ проблему — ночью песок был чёрным
+	# именно без него. Теперь это честный конус на 15–20 м, а ночь должна
+	# читаться и без фонаря (свет луны + ambient + emission).
+	flashlight.spot_attenuation = 1.05
+	flashlight.light_color = Color(1.0, 0.90, 0.74)
+	flashlight.light_energy = 3.6
 	# вью-модель удочки живёт на layer 2 — фонарь светит только мир
 	flashlight.light_cull_mask = 1
-	flashlight.light_volumetric_fog_energy = 2.2
+	flashlight.light_volumetric_fog_energy = 1.4
 	flashlight.shadow_enabled = true
-	flashlight.shadow_bias = 0.08
+	flashlight.shadow_bias = 0.04
+	flashlight.shadow_normal_bias = 1.0
 	flashlight.visible = flash_on
 
 	yaw = player.heading

@@ -12,6 +12,7 @@ var _env: Environment
 var _using_sky_plus := false
 var _cloud_drift := 7.0
 var compat_fallback := false # Vulkan не поднялся → Godot ушёл в Compatibility
+var screen_ao := false # SSAO/SSIL: по умолчанию ВЫКЛ (см. _apply_screen_ao)
 
 
 func setup(game_ref) -> void:
@@ -59,18 +60,16 @@ func _build_environment() -> void:
 	_env.glow_blend_mode = Environment.GLOW_BLEND_MODE_ADDITIVE
 	_env.glow_hdr_threshold = 1.15
 
-	# Контактная глубина и непрямой экранный свет: без них процедурные дюны
-	# выглядят плоскими даже при хорошем небе и тумане.
-	# Радиус 3 м + интенсивность 2.0 (и SSIL 6 м) давали ЧЁРНЫЕ ПИКСЕЛЬНЫЕ
-	# острова на берегу при скользящих ракурсах — половинное разрешение
-	# экранного эффекта не тянуло такие гигантские ядра.
-	_env.ssao_enabled = true
-	_env.ssao_radius = 1.1
-	_env.ssao_intensity = 1.15
-	_env.ssao_power = 1.0
-	_env.ssil_enabled = true
-	_env.ssil_radius = 2.0
-	_env.ssil_intensity = 0.6
+	# Контактная глубина и непрямой экранный свет. ВАЖНО: по умолчанию
+	# ВЫКЛЮЧЕНО. SSAO/SSIL в Forward+ считаются в половинном разрешении и на
+	# больших плоскостях под скользящим ракурсом (наш пляж — 900×900 м) дают
+	# чёрные прямоугольные острова; в связке с PSSM-тенями и MSAA 4x это
+	# известные «black square artifacts» (godot#103669, #81060). Именно они
+	# и превращали песок в «чёрный и пиксельный», когда фонарь выключен:
+	# фонарь — единственный прямой свет, экранное AO гасит всё остальное.
+	# Объём дюн уже запечён в UV2 (Coast: 8 азимутов × 3 дистанции), а
+	# контактные тени дают настоящие тени от солнца. Тумблер — в DEV-панели.
+	_apply_screen_ao(false)
 
 	# Дымка в цвет горизонта — для любых материалов со стандартным туманом.
 	_env.fog_enabled = true
@@ -101,6 +100,33 @@ func _build_environment() -> void:
 	var world_env := WorldEnvironment.new()
 	world_env.environment = _env
 	add_child(world_env)
+
+
+## Экранное AO (SSAO + SSIL) — A/B-тумблер для DEV-панели и для тех, кто
+## хочет проверить артефакт на своей видеокарте. Значения подобраны так,
+## чтобы даже включённое AO не выжигало песок: маленький радиус, мягкая
+## интенсивность и `ssao_light_affect = 0` (прямой свет не трогаем).
+func set_screen_ao(on: bool) -> void:
+	_apply_screen_ao(on)
+
+
+func _apply_screen_ao(on: bool) -> void:
+	screen_ao = on
+	if _env == null:
+		return
+	_env.ssao_enabled = on
+	_env.ssao_radius = 1.4
+	_env.ssao_intensity = 0.75
+	_env.ssao_power = 1.5
+	_env.ssao_detail = 0.5
+	_env.ssao_horizon = 0.06
+	_env.ssao_sharpness = 0.98
+	_env.ssao_light_affect = 0.0
+	_env.ssao_ao_channel_affect = 0.0
+	_env.ssil_enabled = on
+	_env.ssil_radius = 2.5
+	_env.ssil_intensity = 0.30
+	_env.ssil_normal_rejection = 1.5
 
 
 ## Sky++ preset: original look, but tuned from 64+64 marches to a practical
@@ -175,13 +201,23 @@ func _build_sun() -> void:
 	_sun.light_color = Color(1.0, 0.83, 0.66)
 	_sun.light_energy = 1.15
 	_sun.shadow_enabled = true
-	_sun.directional_shadow_max_distance = 180.0
-	_sun.directional_shadow_fade_start = 0.75
+	# PSSM-каскады с явными границами: три ближних каскада дают чёткую
+	# контактную тень под пирсом и камнями вместо каши из одного каскада
+	# на 180 м. Дальний каскад — только для силуэтов дюн.
+	_sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	_sun.directional_shadow_split_1 = 0.04
+	_sun.directional_shadow_split_2 = 0.13
+	_sun.directional_shadow_split_3 = 0.40
+	_sun.directional_shadow_blend_splits = true
+	_sun.directional_shadow_max_distance = 140.0
+	_sun.directional_shadow_fade_start = 0.85
 	# Акне карты теней при низком солнце рисовало на склонах чёрные
-	# прямоугольные блоки («полигональная сетка») — крутим смещение и блюр.
-	_sun.shadow_bias = 0.4
-	_sun.shadow_normal_bias = 2.2
-	_sun.shadow_blur = 1.25
+	# прямоугольные блоки («полигональная сетка»). Смещение 0.4 м — это
+	# 4× дефолт: тень «отклеивалась» от предметов; 2.2 по нормали — тоже
+	# много. Теперь мягкое, но привязанное к геометрии смещение.
+	_sun.shadow_bias = 0.08
+	_sun.shadow_normal_bias = 1.2
+	_sun.shadow_blur = 1.1
 	_sun.light_volumetric_fog_energy = 0.75
 	add_child(_sun)
 
@@ -262,30 +298,50 @@ func set_vol_fog(param: String, value) -> void:
 		_env.fog_density = clampf(float(value) * 0.12, 0.002, 0.03)
 
 
+## Живое значение тумана/окружения — для DEV-панели: ползунки должны
+## показывать то, что реально стоит в сцене, а не свои дефолты.
+func get_vol_fog(param: String) -> float:
+	if _env == null:
+		return 0.0
+	return float(_env.get(param))
+
+
 ## ГЛАВНЫЙ ПОЛЗУНОК «НОЧЬ» (0=день, 1=ночь): красит всё сразу —
 ## небо, свет, песок, туман, экспозицию, грейдинг.
 func apply_night01(v: float) -> void:
 	game.night01 = clampf(v, 0.0, 1.0)
 	var n: float = game.night01
-	# песок/вода сами пекут свет в ALBEDO, поэтому сцена даёт только
-	# «добавку»: днём солнце и небо слабее, иначе всё уходит в белое
-	_env.ambient_light_energy = lerpf(0.72, 0.42, n)
-	_env.tonemap_exposure = lerpf(0.95, 1.15, n)
+	# Заливка. Ночью небо почти чёрное, и если ambient задавить (было 0.42),
+	# песок освещает ТОЛЬКО фонарик: выключил его — всё чёрное. Дневная
+	# заливка, наоборот, слабее солнца, иначе кадр уходит в белое.
+	_env.ambient_light_energy = lerpf(0.72, 1.35, n)
+	# Небо ночью почти чёрное, и одного множителя энергии мало: ambient = sky.
+	# Поэтому к ночи часть заливки берём из ЯВНОГО цвета (лунно-синего), а не
+	# из неба. Днём sky_contribution = 1.0, то есть поведение не меняется.
+	_env.ambient_light_color = Color(0.78, 0.82, 0.92).lerp(Color(0.17, 0.21, 0.36), n)
+	_env.ambient_light_sky_contribution = lerpf(1.0, 0.42, n)
+	_env.tonemap_exposure = lerpf(0.95, 1.24, n)
 	_env.fog_light_color = Game.HORIZON_COL.lerp(Color(0.15, 0.20, 0.34), n)
 	# днём дымка лёгкая (0.008 volumetric = белая пелена на полкадра),
-	# к ночи туман сгущается — это и есть ночной хоррор-воздух
-	_env.fog_density = lerpf(0.0011, 0.0042, n) if not compat_fallback \
-		else lerpf(0.0011, 0.011, n)
-	_env.volumetric_fog_density = lerpf(0.0016, 0.019, n)
+	# к ночи туман сгущается — но 0.019 заливало кадр молоком и стирало
+	# рельеф дюн: держим объём читаемым, глубину даёт свет, а не мгла.
+	_env.fog_density = lerpf(0.0011, 0.0034, n) if not compat_fallback \
+		else lerpf(0.0011, 0.010, n)
+	_env.volumetric_fog_density = lerpf(0.0016, 0.011, n)
 	_env.volumetric_fog_albedo = Color(0.72, 0.72, 0.72).lerp(Color(0.46, 0.52, 0.64), n)
+	# Ночной glow: порог ниже — искры песка и фонарь пирса дают тёплый ореол,
+	# не превращая небо в белое пятно.
+	_env.glow_hdr_threshold = lerpf(1.15, 0.95, n)
 	if _using_sky_plus:
-		_sky_mat.set_shader_parameter("exposure", lerpf(13.5, 8.5, n))
+		_sky_mat.set_shader_parameter("exposure", lerpf(13.5, 9.5, n))
 		_sky_mat.set_shader_parameter("sundisc_intensity", lerpf(32.0, 10.0, n))
 		_sky_mat.set_shader_parameter("coverage", lerpf(0.34, 0.48, n))
 	else:
 		_sky_mat.set_shader_parameter("sun_intensity", lerpf(50.0, 8.0, n))
-	_sun.light_energy = lerpf(0.85, 0.30, n)
-	_sun.light_color = Color(1.0, 0.83, 0.66).lerp(Color(0.72, 0.78, 0.95), n)
+	# «Луна» — тот же направленный источник: ночью он не должен гаснуть в
+	# ноль, иначе дюны теряют форму и остаётся плоская заливка.
+	_sun.light_energy = lerpf(0.85, 1.05, n)
+	_sun.light_color = Color(1.0, 0.83, 0.66).lerp(Color(0.62, 0.72, 1.0), n)
 
 
 ## Смена солнца: небо + свет (базис и цвет по Кельвину — низкое солнце
@@ -295,12 +351,14 @@ func apply_sun(dir: Vector3) -> void:
 	if not _using_sky_plus:
 		_sky_mat.set_shader_parameter("sun_direction", dir)
 	_sun.basis = Basis.looking_at(-dir.normalized(), Vector3.UP)
-	if game.night01 > 0.5:
-		var elev01n := smoothf(dir.y, 0.05, 0.55)
-		_sun.light_color = Color(0.68, 0.74, 0.95).lerp(Color(0.85, 0.90, 1.0), elev01n)
-	else:
-		var elev01 := smoothf(dir.y, 0.05, 0.55)
-		_sun.light_color = Color(1.0, 0.83, 0.66).lerp(Color(1.0, 0.97, 0.92), elev01)
+	# Цвет зависит и от высоты, и от времени суток. Раньше «день/ночь»
+	# переключались скачком по night01 > 0.5 и затирали «луну», которую
+	# выставил apply_night01(): после любого движения ползунка солнца сцена
+	# могла стать тёплой в полночь или синей в полдень.
+	var elev01 := smoothf(dir.y, 0.05, 0.55)
+	var day_col := Color(1.0, 0.83, 0.66).lerp(Color(1.0, 0.97, 0.92), elev01)
+	var night_col := Color(0.62, 0.72, 1.0).lerp(Color(0.86, 0.90, 1.0), elev01)
+	_sun.light_color = day_col.lerp(night_col, game.night01)
 
 
 func smoothf(v: float, a: float, b: float) -> float:

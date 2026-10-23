@@ -14,6 +14,11 @@ var _box: VBoxContainer
 var _fps_label: Label
 var _sun_elev := 16.4 # градусы
 var _sun_azim := -61.4
+## Ползунки, у которых есть «живой» геттер: при открытии панели они
+## показывают реальное состояние сцены, а не дефолт, с которым родились.
+var _live: Array[Dictionary] = []
+var _ssao_check: CheckBox
+var _msaa_check: CheckBox
 
 
 func setup(main_ref) -> void:
@@ -27,6 +32,8 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.physical_keycode == KEY_F3:
 			visible = not visible
+			if visible:
+				_refresh()
 
 
 func _process(_delta: float) -> void:
@@ -63,13 +70,25 @@ func _build_ui() -> void:
 	var world: GameWorld = main.world
 	var coast: Coast = main.coast
 
+	_section("ГРАФИКА / АРТЕФАКТЫ")
+	_ssao_check = _toggle("SSAO/SSIL (экранное AO)", world.screen_ao,
+		func(on): world.set_screen_ao(on))
+	_ssao_check.tooltip_text = "Чёрные прямоугольники на песке ночью — это половинное разрешение SSAO/SSIL. Выключено по умолчанию; включайте для A/B на своей видеокарте."
+	_msaa_check = _toggle("MSAA 4x (2x по умолчанию)", false,
+		func(on):
+			get_viewport().msaa_3d = Viewport.MSAA_4X if on else Viewport.MSAA_2X)
+	_msaa_check.tooltip_text = "PSSM + экранные эффекты + MSAA 4x/8x = известные чёрные квадраты (godot#103669). 4x оставлен для проверки на своей GPU."
+
 	_section("ВРЕМЯ СУТОК")
 	_slider("Время (0=день, 1=ночь)", 0.0, 1.0, main.game.night01, 0.01,
-		func(v): main.set_time(v))
+		func(v): main.set_time(v),
+		func(): return main.game.night01)
 	_slider("Искры в тенях: яркость", 0.0, 2.5, 2.5, 0.02,
-		func(v): main.coast.set_sand("shadow_star_intensity", v))
+		func(v): main.coast.set_sand("shadow_star_intensity", v),
+		func(): return coast.get_sand("shadow_star_intensity"))
 	_slider("Искры в тенях: редкость", 0.15, 0.98, 0.30, 0.01,
-		func(v): main.coast.set_sand("shadow_star_density", v))
+		func(v): main.coast.set_sand("shadow_star_density", v),
+		func(): return coast.get_sand("shadow_star_density"))
 
 	_section("НЕБО")
 	_slider("Солнце: высота°", 2.0, 85.0, _sun_elev, 0.5,
@@ -93,7 +112,8 @@ func _build_ui() -> void:
 
 	_section("ПЕСОК / БЕРЕГ")
 	_slider("Блёстки (доля)", 0.0, 0.5, 0.20, 0.01,
-		func(v): coast.set_sand("glitter_amount", v))
+		func(v): coast.set_sand("glitter_amount", v),
+		func(): return coast.get_sand("glitter_amount"))
 	_slider("Дымка песка (м)", 100.0, 900.0, 340.0, 10.0,
 		func(v):
 			coast.set_sand("fog_distance", v)
@@ -121,9 +141,11 @@ func _build_ui() -> void:
 
 	_section("ПОСТ")
 	_slider("Экспозиция", 0.5, 2.0, world.get_exposure(), 0.02,
-		func(v): world.set_exposure(v))
+		func(v): world.set_exposure(v),
+		func(): return world.get_exposure())
 	_slider("Порог glow", 0.5, 2.0, world.get_glow_threshold(), 0.02,
-		func(v): world.set_glow_threshold(v))
+		func(v): world.set_glow_threshold(v),
+		func(): return world.get_glow_threshold())
 
 	_section("ЦВЕТ (ГРЕЙДИНГ)")
 	_preset_slider()
@@ -135,20 +157,23 @@ func _build_ui() -> void:
 		func(v): main.color_grade.set_param("contrast", v))
 	_slider("Вибранс", -0.6, 0.6, 0.12, 0.01,
 		func(v): main.color_grade.set_param("vibrance", v))
-	_slider("Ночь (Пуркинье)", 0.0, 1.0, 0.0, 0.01,
-		func(v): main.color_grade.set_param("night", v))
+	_slider("Ночь (Пуркинье)", 0.0, 1.0, main.color_grade.get_param("night"), 0.01,
+		func(v): main.color_grade.set_param("night", v),
+		func(): return main.color_grade.get_param("night"))
 
 	_section("ВОЛЮМЕТРИК (ТУМАН)")
 	_slider("Плотность", 0.002, 0.12, 0.008, 0.001,
-		func(v): world.set_vol_fog("volumetric_fog_density", v))
+		func(v): world.set_vol_fog("volumetric_fog_density", v),
+		func(): return world.get_vol_fog("volumetric_fog_density"))
 	_slider("Дальность, м", 48.0, 256.0, 160.0, 4.0,
 		func(v): world.set_vol_fog("volumetric_fog_length", v))
 	_slider("Анизотропия", 0.0, 1.0, 0.72, 0.02,
 		func(v): world.set_vol_fog("volumetric_fog_anisotropy", v))
 	_slider("Подсветка неба", 0.0, 1.0, 0.12, 0.02,
 		func(v): world.set_vol_fog("volumetric_fog_ambient_inject", v))
-	_slider("Фонарик", 0.0, 8.0, 5.0, 0.1,
-		func(v): main.cam_rig.flashlight.light_energy = v)
+	_slider("Фонарик", 0.0, 8.0, main.cam_rig.flashlight.light_energy, 0.1,
+		func(v): main.cam_rig.flashlight.light_energy = v,
+		func(): return main.cam_rig.flashlight.light_energy)
 
 	_section("ВЕТЕР")
 	_slider("Направление°", -180.0, 180.0, rad_to_deg(main.game.wind_base), 1.0,
@@ -196,7 +221,8 @@ func _label(text: String) -> Label:
 	return l
 
 
-func _slider(text: String, min_v: float, max_v: float, val: float, step: float, cb: Callable) -> void:
+func _slider(text: String, min_v: float, max_v: float, val: float, step: float,
+		cb: Callable, getter := Callable()) -> HSlider:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	_box.add_child(row)
@@ -219,6 +245,37 @@ func _slider(text: String, min_v: float, max_v: float, val: float, step: float, 
 	vlabel.custom_minimum_size = Vector2(58.0, 0)
 	row.add_child(vlabel)
 	s.value_changed.connect(func(v): vlabel.text = "%.3f" % v)
+	if getter.is_valid():
+		_live.append({"slider": s, "label": vlabel, "get": getter})
+	return s
+
+
+func _toggle(text: String, value: bool, cb: Callable) -> CheckBox:
+	var c := CheckBox.new()
+	c.text = text
+	c.button_pressed = value
+	c.toggled.connect(cb)
+	_box.add_child(c)
+	return c
+
+
+## Синхронизация: «Время суток» меняет не только себя, но и палитры,
+## экспозицию, туман; «Ночь (Пуркинье)» живёт в color_grade. Раньше панель
+## показывала дефолты слайдеров, и по ней нельзя было понять, что в кадре
+## (например, «Ночь 0.000» при включённой ночи).
+func _refresh() -> void:
+	for item in _live:
+		var s: HSlider = item["slider"]
+		var lab: Label = item["label"]
+		var cb: Callable = item["get"]
+		var v: float = float(cb.call())
+		v = clampf(v, s.min_value, s.max_value)
+		s.set_value_no_signal(v)
+		lab.text = "%.3f" % v
+	if _ssao_check != null:
+		_ssao_check.set_pressed_no_signal(main.world.screen_ao)
+	if _msaa_check != null:
+		_msaa_check.set_pressed_no_signal(get_viewport().msaa_3d == Viewport.MSAA_4X)
 
 
 # ---------------------------------------------------------------------------

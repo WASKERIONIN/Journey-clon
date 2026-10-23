@@ -272,6 +272,32 @@ func _process(delta: float) -> void:
 		19: # источник видим, но энергии 0 — только путь шейдера light() на кадр
 			if _fs > 6:
 				_capture("shot_s_flash_zero.png")
+				main.cam_rig.flashlight.light_energy = 3.6
+				main.hud.visible = false
+				_go(20)
+		20: # ГЛАВНЫЙ КАДР ЖАЛОБЫ: ночь, фонарь ВЫКЛЮЧЕН, взгляд вниз на песок.
+			# Раньше здесь песок уходил в чёрные прямоугольники (SSAO/SSIL +
+			# PSSM + MSAA 4x). Кадр должен остаться читаемым БЕЗ фонаря.
+			if _fs == 1:
+				main.cam_rig.flashlight.visible = false
+				main.cam_rig.flash_on = false
+				main.cam_rig.set_view(PI * 0.5, -0.62)
+			if _fs > 6:
+				_capture("shot_t_night_sand_off.png")
+				main.cam_rig.flashlight.visible = true
+				main.cam_rig.flash_on = true
+				_go(21)
+		21: # тот же ракурс с фонарём — контроль «до/после»
+			if _fs > 6:
+				_capture("shot_u_night_sand_on.png")
+				main.cam_rig.flashlight.visible = false
+				main.cam_rig.flash_on = false
+				_go(22)
+		22: # ночное море: урез и вода не должны быть чёрным прямоугольником
+			if _fs == 1:
+				main.cam_rig.set_view(-PI * 0.5, -0.16)
+			if _fs > 6:
+				_capture("shot_v_night_sea.png")
 				_finish("")
 
 

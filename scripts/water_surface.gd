@@ -102,10 +102,13 @@ const DAY_SHALLOW := Color(0.30, 0.66, 0.62)
 const DAY_MID := Color(0.10, 0.38, 0.48)
 const DAY_DEEP := Color(0.035, 0.150, 0.300)
 const DAY_FOAM := Color(0.95, 0.92, 0.86)
-const NIGHT_SHALLOW := Color(0.045, 0.110, 0.120)
-const NIGHT_MID := Color(0.012, 0.040, 0.060)
-const NIGHT_DEEP := Color(0.003, 0.010, 0.022)
-const NIGHT_FOAM := Color(0.30, 0.36, 0.42)
+# Ночное море: глубокая синь, но не (0.003, 0.010, 0.022) — это после
+# тонмаппинга и грейдинга давало АБСОЛЮТНО чёрную воду, которая и читалась
+# как «чёрный пиксельный песок» у уреза.
+const NIGHT_SHALLOW := Color(0.055, 0.145, 0.170)
+const NIGHT_MID := Color(0.020, 0.062, 0.105)
+const NIGHT_DEEP := Color(0.009, 0.030, 0.062)
+const NIGHT_FOAM := Color(0.36, 0.42, 0.50)
 
 
 func apply_night01(v: float) -> void:
@@ -116,11 +119,11 @@ func apply_night01(v: float) -> void:
 	set_param("foam_col", DAY_FOAM.lerp(NIGHT_FOAM, v))
 	set_param("horizon_col", Coast.DAY_HORIZON.lerp(Coast.NIGHT_HORIZON, v))
 	set_param("sky_col", Coast.DAY_SKY.lerp(Coast.NIGHT_SKY, v))
-	set_param("fog_distance", lerpf(340.0, 130.0, v))
-	# На ночной воде гасим обычные микроблики и солнечные частицы:
-	# редкие огни остаются, а звёзды на песке не превращаются в сплошную россыпь.
-	set_param("glitter_amount", lerpf(1.0, 0.08, _night01))
-	set_param("solar_glitter_amount", lerpf(1.0, 0.0, _night01))
+	set_param("fog_distance", lerpf(340.0, 170.0, v))
+	# Ночью блики не гасим в ноль: именно они рисуют лунную дорожку и
+	# «дыхание» тёмной воды. Мерцание остаётся редким, но живым.
+	set_param("glitter_amount", lerpf(1.0, 0.20, _night01))
+	set_param("solar_glitter_amount", lerpf(1.0, 0.55, _night01))
 	set_param("night_amount", _night01)
 
 

@@ -100,3 +100,10 @@ func set_intensity(v: float) -> void:
 ## Точечная правка одного параметра (крутилки DEV-панели).
 func set_param(key: String, v: float) -> void:
 	_mat.set_shader_parameter(key, v)
+
+
+## Живое значение параметра — чтобы DEV-панель показывала то, что реально
+## стоит в материале (например, «Ночь Пуркинье» выставляет set_time()).
+func get_param(key: String) -> float:
+	var v: Variant = _mat.get_shader_parameter(key)
+	return float(v) if v != null else 0.0

@@ -457,11 +457,15 @@ const DAY_HOT := Color(1.00, 0.68, 0.36)
 const DAY_SHADE := Color(0.40, 0.32, 0.52)
 const DAY_HORIZON := Color(0.96, 0.66, 0.55)
 const DAY_SKY := Color(0.28, 0.24, 0.43)
-const NIGHT_SUNNY := Color(0.135, 0.155, 0.24)
-const NIGHT_HOT := Color(0.19, 0.215, 0.32)
-const NIGHT_SHADE := Color(0.055, 0.065, 0.115)
-const NIGHT_HORIZON := Color(0.22, 0.27, 0.40)
-const NIGHT_SKY := Color(0.04, 0.05, 0.10)
+# Ночная палитра — лунный песок: холодный, но НЕ чёрный. Прошлые значения
+# (sunny 0.135, shade 0.055) были рассчитаны на «печём свет в EMISSION»;
+# после переезда на настоящий лунный свет альбедо должно быть светлее,
+# иначе песок читается только с фонариком.
+const NIGHT_SUNNY := Color(0.20, 0.23, 0.35)
+const NIGHT_HOT := Color(0.30, 0.34, 0.48)
+const NIGHT_SHADE := Color(0.085, 0.10, 0.17)
+const NIGHT_HORIZON := Color(0.26, 0.31, 0.45)
+const NIGHT_SKY := Color(0.07, 0.085, 0.15)
 
 
 func set_night01(v: float) -> void:
@@ -473,14 +477,25 @@ func set_night01(v: float) -> void:
 	m.set_shader_parameter("sand_shade", DAY_SHADE.lerp(NIGHT_SHADE, v))
 	m.set_shader_parameter("horizon_col", DAY_HORIZON.lerp(NIGHT_HORIZON, v))
 	m.set_shader_parameter("sky_col", DAY_SKY.lerp(NIGHT_SKY, v))
-	m.set_shader_parameter("fog_distance", lerpf(340.0, 130.0, v))
-	m.set_shader_parameter("glitter_amount", lerpf(0.20, 0.06, v))
+	m.set_shader_parameter("fog_distance", lerpf(340.0, 170.0, v))
+	# Ночью искры — главная «текстура» песка: раньше их давили до 0.06 и
+	# песок становился ровной заливкой. Лунные искры холоднее, но живые.
+	m.set_shader_parameter("glitter_amount", lerpf(0.20, 0.16, v))
 	m.set_shader_parameter("night_amount", v)
 
 
 func set_sand(param: String, value) -> void:
 	if material_override != null:
 		(material_override as ShaderMaterial).set_shader_parameter(param, value)
+
+
+## Живое значение uniform-а песка — DEV-панель показывает реальные числа,
+## а не дефолты слайдеров (из-за этого «Ночь 0.000» стояла при ночи).
+func get_sand(param: String) -> float:
+	if material_override == null:
+		return 0.0
+	var v: Variant = (material_override as ShaderMaterial).get_shader_parameter(param)
+	return float(v) if v != null else 0.0
 
 
 func attach_sand(sand_ref: SandField) -> void:
