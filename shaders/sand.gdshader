@@ -167,9 +167,19 @@ void fragment() {
 	// вблизи и не выглядит ровной заливкой. Гаснет с дистанцией (detail),
 	// чтобы не рябить в муар на горизонте.
 	float ph_fine = dot(wp, wperp) * 8.0 + vnoise(wp * 1.3) * 3.0 + TIME * 0.55;
-	float fine_amp = 0.20 * wind_power * mix(0.10, 1.0, detail);
-	vec2 fgrad = wperp * (cos(ph_fine) * 0.75 + cos(ph_fine * 2.41 + 1.1) * 0.35)
+	// Второй поезд под углом: одна частота и одно направление дают
+	// «кордурой» — идеальные параллельные полосы до горизонта.
+	vec2 wperp2 = normalize(wperp + wdir * 0.85);
+	float ph_fine2 = dot(wp, wperp2) * 6.1 + vnoise(wp * 0.9 + vec2(4.4, 6.1)) * 2.4;
+	// АНТИАЛИАСИНГ: шаг фазы на пиксель больше ~0.4 рад — рябь превращается
+	// в муар (его видно полосами у горизонта). Гасим её по фактическому
+	// размеру пикселя в метрах, а не по «дальности».
+	float px_world = max(length(fwidth(wp)), 1e-5);
+	float ripple_aa = 1.0 - smoothstep(0.22, 0.85, 8.0 * px_world);
+	float fine_amp = 0.22 * wind_power * mix(0.10, 1.0, detail) * ripple_aa;
+	vec2 fgrad = wperp * (cos(ph_fine) * 0.70 + cos(ph_fine * 2.41 + 1.1) * 0.30)
 		* fine_amp;
+	fgrad += wperp2 * cos(ph_fine2) * 0.42 * fine_amp;
 	rgrad += fgrad;
 	N = normalize(N + vec3(rgrad.x, 0.0, rgrad.y));
 
@@ -235,7 +245,10 @@ void fragment() {
 	// светлее впадин (сдутая пыль). Нормали ночью почти не работают —
 	// заливка равномерная, — а альбедо-полосы работают всегда: это и
 	// возвращает песку фактуру без фонаря.
-	base *= 1.0 + 0.28 * cos(ph_fine) * mix(0.35, 1.0, detail);
+	// Полосы альбедо подчиняются тому же антиалиасингу: иначе вместо
+	// «песка» вдали получается рябь экранной сетки.
+	float stripe = cos(ph_fine) * 0.72 + cos(ph_fine2) * 0.28;
+	base *= 1.0 + 0.30 * stripe * mix(0.35, 1.0, detail) * ripple_aa;
 
 	// ---------- 2a. Урез: прибой ----------
 	// Высота воды в точке — ТА ЖЕ формула, что в vertex water.gdshader:
