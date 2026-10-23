@@ -374,7 +374,8 @@ void light() {
 	// строений падают на плоское, а склоны при низком солнце покрыты
 	// акне карты теней — звёзды там рисовали «полигональную сетку»
 	float flat_g = smoothstep(0.78, 0.95, w_normal.y);
-	float near_f = exp(-length(CAMERA_POSITION_WORLD - w_pos) * 0.010);
+	vec3 cam_w = (INV_VIEW_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+	float near_f = exp(-length(cam_w - w_pos) * 0.010);
 	// два масштаба: крупные редкие + мелкая россыпь
 	vec3 field = shadow_star_field(w_pos.xz, 2.1, 0.0) * 1.25
 		+ shadow_star_field(w_pos.xz, 5.3, 11.7) * 0.85;
