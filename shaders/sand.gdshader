@@ -176,15 +176,19 @@ void fragment() {
 	float wrap = clamp((ndl + 0.45) / 1.05, 0.0, 1.0);
 	vec3 base = mix(sand_shade, sand_sunny, smoothstep(0.0, 0.68, wrap));
 	base = mix(base, sand_hot, pow(wrap, 2.0) * (0.35 + 0.50 * crest));
+	// глубокой ночью солнечные добавки гаснут: иначе лунный EMISSION-подсвет
+	// вытаскивал тёплую «закатную» составляющую и суша уходила в серо-розовый
+	float warm_keep = 1.0 - smoothstep(0.45, 0.85, night_amount);
 	// солнечная кромка: склоны, отвесные к солнцу, светятся изнутри
-	base += vec3(1.0, 0.62, 0.34) * pow(clamp(ndl, 0.0, 1.0), 2.2) * 0.16;
+	base += vec3(1.0, 0.62, 0.34) * pow(clamp(ndl, 0.0, 1.0), 2.2) * 0.16 * warm_keep;
 	// прямое солнце AO почти не слушается, полусфера — целиком
 	base *= mix(1.0, ao, 0.32);
 	// заливка неба: сиреневая прохлада на теневых склонах
 	base += sand_shade * clamp(N.y, 0.0, 1.0) * 0.22 * ao * (1.0 - wrap);
 	// отблеск песка: тёплый свет, отскочивший от дюн, греет тень
 	vec3 B = normalize(vec3(-L.x, 0.55, -L.z));
-	base += vec3(1.00, 0.58, 0.32) * clamp(dot(N, B), 0.0, 1.0) * 0.28 * ao * (1.0 - wrap * 0.6);
+	base += vec3(1.00, 0.58, 0.32) * clamp(dot(N, B), 0.0, 1.0) * 0.28 * ao
+		* (1.0 - wrap * 0.6) * warm_keep;
 	// ложбины — прохладнее тоном (глубину уже дал AO)
 	base = mix(base, sand_shade, hollow * 0.18);
 	// крупный тональный шум: дюны не одинаковые
@@ -272,9 +276,10 @@ void fragment() {
 	float sheen = pow(clamp(dot(N, H), 0.0, 1.0), 16.0) * 0.7
 		+ pow(clamp(dot(N, H), 0.0, 1.0), 48.0) * 0.3;
 	base += vec3(1.0, 0.72, 0.45) * sheen * fres * 0.045 * near_gloss
-		* smoothstep(0.0, 0.5, wrap) * (1.0 - churn * 0.5);
+		* smoothstep(0.0, 0.5, wrap) * (1.0 - churn * 0.5) * warm_keep;
 	// скользящий ракурс: ближний песок у кромки дюны слегка рдеет
-	base += vec3(0.90, 0.55, 0.35) * (fres - 0.35) * 0.10 * ao * near_gloss;
+	base += vec3(0.90, 0.55, 0.35) * (fres - 0.35) * 0.10 * ao * near_gloss
+		* warm_keep;
 
 	// ---------- 4. Дымка к горизонту ----------
 	float fog = 1.0 - exp(-pow(dist / fog_distance, 2.1));
@@ -291,7 +296,10 @@ void fragment() {
 	if (nightk > 0.0) {
 		vec3 md = normalize(vec3(L.x, 0.55, L.z)); // луна над стороной солнца
 		float mnl = clamp(dot(N, md) * 0.5 + 0.5, 0.0, 1.0);
-		EMISSION = base * (0.55 + 0.40 * mnl) * nightk * (1.0 - fog);
+		// чем ниже солнце, тем темнее небесный ambient — тем больше нужна луна
+		float low_sun = 1.0 - smoothstep(0.05, 0.25, L.y);
+		EMISSION = base * (0.65 + 0.55 * mnl) * (0.35 + 0.65 * low_sun)
+			* nightk * (1.0 - fog);
 	}
 
 	ALBEDO = mix(base, fcol, fog);

@@ -345,7 +345,9 @@ void fragment() {
 	if (nightk > 0.0) {
 		vec3 md = normalize(vec3(L.x, 0.55, L.z));
 		float mnl = clamp(dot(N, md) * 0.5 + 0.5, 0.0, 1.0);
-		moon_reveal = base * (0.55 + 0.40 * mnl) * nightk * (1.0 - fog);
+		float low_sun = 1.0 - smoothstep(0.05, 0.25, L.y);
+		moon_reveal = base * (0.65 + 0.55 * mnl) * (0.35 + 0.65 * low_sun)
+			* nightk * (1.0 - fog);
 	}
 	ALBEDO = mix(base - distant_glitter, fcol, fog);
 	EMISSION = distant_glitter + moon_reveal;
