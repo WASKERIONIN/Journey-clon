@@ -371,8 +371,14 @@ void fragment() {
 
 	NORMAL = normalize((VIEW_MATRIX * vec4(N.x, N.y, N.z, 0.0)).xyz);
 	float rough = mix(0.16, 0.55, near_shore);
+	// Ночью вода не должна быть полированным зеркалом: при солнце/луне
+	// почти на горизонте GGX-блик roughness 0.16 выжигает белый СТОЛБ
+	// от горизонта до берега. Более шероховатая поверхность размазывает
+	// блик в широкую лунную дорожку — это и красивее, и физичнее.
+	float night_rough = smoothstep(0.35, 0.85, night_amount);
+	rough = mix(rough, 0.34, night_rough);
 	ROUGHNESS = mix(rough, 0.88, foam);
-	SPECULAR = mix(0.55, 0.18, near_shore);
+	SPECULAR = mix(mix(0.55, 0.18, near_shore), 0.30, night_rough);
 	METALLIC = 0.0;
 
 	// ---------- мягкий урез ----------
