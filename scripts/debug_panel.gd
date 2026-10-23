@@ -147,7 +147,7 @@ func _build_ui() -> void:
 		func(v): world.set_vol_fog("volumetric_fog_anisotropy", v))
 	_slider("Подсветка неба", 0.0, 1.0, 0.12, 0.02,
 		func(v): world.set_vol_fog("volumetric_fog_ambient_inject", v))
-	_slider("Фонарик", 0.0, 8.0, 3.0, 0.1,
+	_slider("Фонарик", 0.0, 8.0, 5.0, 0.1,
 		func(v): main.cam_rig.flashlight.light_energy = v)
 
 	_section("ВЕТЕР")

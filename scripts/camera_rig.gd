@@ -44,11 +44,11 @@ func setup(main_ref) -> void:
 	flashlight.spot_angle = 27.0
 	# decay затухания: формула Godot = (1-(d/range)^4)^2 * d^(-decay).
 	# При старом decay 1.4 фонарь на 7 м давал 6.6% энергии — «всё чернеет»
-	# при включённом фонарике: конус был мертвенно тусклым. decay 0.3 —
-	# игровой свет: яркая лужа под ногами и читаемый луч вдаль.
-	flashlight.spot_attenuation = 0.3
+	# при включённом фонарике: конус был мертвенно тусклым. decay 0.2 и
+	# энергия 5.0 — яркая лужа под ногами и читаемый луч вдаль.
+	flashlight.spot_attenuation = 0.2
 	flashlight.light_color = Color(1.0, 0.93, 0.80)
-	flashlight.light_energy = 3.0
+	flashlight.light_energy = 5.0
 	# вью-модель удочки живёт на layer 2 — фонарь светит только мир
 	flashlight.light_cull_mask = 1
 	flashlight.light_volumetric_fog_energy = 2.2
