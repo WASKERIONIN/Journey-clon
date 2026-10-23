@@ -345,10 +345,14 @@ func apply_night01(v: float) -> void:
 	_env.volumetric_fog_albedo = Color(0.72, 0.72, 0.72).lerp(Color(0.46, 0.52, 0.66), n)
 	# Ночной glow: порог ниже — искры песка и фонарь пирса дают тёплый ореол,
 	# не превращая небо в белое пятно.
-	_env.glow_hdr_threshold = lerpf(1.15, 1.02, n)
+	_env.glow_hdr_threshold = lerpf(1.15, 1.10, n)
+	_env.glow_intensity = lerpf(0.55, 0.42, n)
 	if _using_sky_plus:
 		_sky_mat.set_shader_parameter("exposure", lerpf(13.5, 9.5, n))
-		_sky_mat.set_shader_parameter("sundisc_intensity", lerpf(32.0, 10.0, n))
+		# Ночью диск солнца не должен светить как прожектор: при пороге glow
+		# 1.02 диск в 10 единиц + аддитивный glow давали белый СТОЛБ на
+		# пол-экрана у горизонта (виден на кадре ночного моря).
+		_sky_mat.set_shader_parameter("sundisc_intensity", lerpf(32.0, 2.2, n))
 		_sky_mat.set_shader_parameter("coverage", lerpf(0.34, 0.48, n))
 	else:
 		_sky_mat.set_shader_parameter("sun_intensity", lerpf(50.0, 8.0, n))
