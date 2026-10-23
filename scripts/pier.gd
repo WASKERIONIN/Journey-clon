@@ -158,7 +158,7 @@ func _build() -> void:
 	_lamp.omni_range = 22.0
 	_lamp.light_energy = 1.2
 	_lamp.shadow_enabled = false
-	_lamp.light_volumetric_fog_energy = 1.6
+	_lamp.light_volumetric_fog_energy = 1.0
 	add_child(_lamp)
 
 	# --- один меш на всё дерево ---
@@ -179,7 +179,9 @@ func _process(_delta: float) -> void:
 		return
 	var n: float = clampf(game.night01, 0.0, 1.0)
 	var flick := 0.92 + 0.08 * sin(game.elapsed * 7.3) * sin(game.elapsed * 2.1)
-	_lamp.light_energy = (0.35 + 4.2 * n) * flick
+	# 4.2 энергии + emission 2.6 выжигали вокруг фонаря белое пятно на
+	# пол-экрана (и glow добивал): ночью фонарь — тёплая точка, а не сварка.
+	_lamp.light_energy = (0.35 + 2.4 * n) * flick
 	if _lamp_glow != null:
 		(_lamp_glow.material_override as StandardMaterial3D).emission_energy_multiplier \
-			= 0.25 + 2.6 * n
+			= 0.25 + 1.5 * n

@@ -279,9 +279,16 @@ func _process(delta: float) -> void:
 			# Раньше здесь песок уходил в чёрные прямоугольники (SSAO/SSIL +
 			# PSSM + MSAA 4x). Кадр должен остаться читаемым БЕЗ фонаря.
 			if _fs == 1:
+				# чистое место вдали от пирса и удочки: только песок в кадре
+				var nsx := main.coast.shore_x(Coast.SPAWN_Z + 18.0) + 14.0
+				var nsz := Coast.SPAWN_Z + 18.0
+				main.player.global_position = Vector3(nsx,
+					main.coast.ground_height(nsx, nsz) + 0.05, nsz)
+				main.player.vel = Vector3.ZERO
+				main.player.grounded = true
 				main.cam_rig.flashlight.visible = false
 				main.cam_rig.flash_on = false
-				main.cam_rig.set_view(PI * 0.5, -0.62)
+				main.cam_rig.set_view(PI * 0.5, -0.45)
 			if _fs > 6:
 				_capture("shot_t_night_sand_off.png")
 				main.cam_rig.flashlight.visible = true
