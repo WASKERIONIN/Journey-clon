@@ -287,7 +287,8 @@ void fragment() {
 
 	float path_power = mix(180.0, 34.0, far_glit);
 	float path = pow(clamp(dot(N, H), 0.0, 1.0), path_power);
-	base += lit_col * path * 0.55 * (1.0 - 0.85 * near_shore);
+	base += lit_col * path * 0.55 * mix(1.0, 0.30, night_amount)
+		* (1.0 - 0.85 * near_shore);
 	// СОЛНЕЧНЫЙ глиттер — не широкая полоса света: редкие отдельные
 	// отражающие «частицы» собираются только в направлении солнечной дорожки.
 	// Ячейки укрупняются вдаль, а размер искры держим в пикселях, чтобы
@@ -323,9 +324,13 @@ void fragment() {
 	float spark_select = step(1.0 - solar_glitter_amount * 0.32, spark_seed);
 	float spark_twinkle = 0.72 + 0.28 * sin(u_time * 3.4 + spark_seed * 71.0);
 	vec3 spark_tint = mix(lit_col, vec3(0.90, 0.95, 1.08), spark_core * 0.82);
+	// Ночью лунная дорожка в разы слабее солнечной: без этого множителя
+	// HDR-искры ×9 через glow с порогом 1.02 сваривали в белый столб
+	// на пол-экрана (видно на кадре ночного моря).
+	float road_night = mix(1.0, 0.22, night_amount);
 	vec3 distant_glitter = spark_tint * sparkle_shape * spark_select * sun_road
 		* microfacet_match * spark_twinkle * far_glit * solar_glitter_amount
-		* 9.0 * (1.0 - 0.70 * near_shore);
+		* 9.0 * road_night * (1.0 - 0.70 * near_shore);
 	base += distant_glitter;
 
 	// ---------- пена прибоя ----------
